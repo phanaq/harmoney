@@ -47,16 +47,22 @@ class MainWidget(BaseWidget) :
         
         self.staff = Staff(100, 50)
         self.canvas.add(self.staff)
+
+        self.pitch = 0
+        self.anim_group = AnimGroup()
+        self.canvas.add(self.anim_group)
+        self.pointer = Pointer(self.staff)
+        self.anim_group.add(self.pointer)
+
         self.setup()
 
     def setup(self):
-
         self.downsample = 1
         self.samplerate = 44100 // self.downsample
         if len( sys.argv ) > 2: self.samplerate = int(sys.argv[2])
 
         self.win_s = 4096 // self.downsample # fft size
-        self.hop_s = 2048  // self.downsample # hop size
+        self.hop_s = 512  // self.downsample # hop size
 
         self.tolerance = 0.8
 
@@ -66,11 +72,15 @@ class MainWidget(BaseWidget) :
 
     def on_update(self):
         self.audio.on_update()
+        self.anim_group.on_update()
 
         if self.record:
             if len(self.input_buffers) > 0:
-                pitch = self.pitch_o(self.input_buffers.pop(0))[0]
+                pitch = self.pitch_o(self.input_buffers.pop(0)[:512])[0]
                 pitch = int(round(pitch))
+                if pitch != self.pitch:
+                    self.pitch = pitch
+                    self.pointer.set_pitch(self.pitch)
                 self.label.text = str(pitch)
 
     def receive_audio(self, frames, num_channels):
