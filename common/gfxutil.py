@@ -28,6 +28,51 @@ def topleft_label() :
               text_size=(Window.width, Window.height))
     return l
 
+
+class Pointer(InstructionGroup):
+    def __init__(self):
+        super(Pointer, self).__init__()
+        self.center = Window.height / 2
+
+        self.add(PushMatrix())
+        self.pointer_width = 100
+        self.pointer_height = 30
+
+        self.color = Color(1,1,1,1)
+        self.add(self.color)
+        self.xpos = 300
+        self.ypos = self.center
+
+        self.pointer = Triangle()
+        self._set_points()
+        self.add(self.pointer)
+
+        self.ypos_anim = KFAnim((0,0))
+        self.time = 0
+
+        self.add(PopMatrix())
+
+        self.active = False
+
+    def _set_points(self):
+        x_points = [self.xpos, self.xpos, self.xpos+self.pointer_width]
+        y_points = [self.ypos + self.pointer_height, self.ypos - self.pointer_height, self.ypos]
+        points = [val for pair in zip(x_points, y_points) for val in pair]
+        self.pointer.points = points
+
+    def set_pitch(self, pitch):
+        self.time = 0
+        diff = pitch - 60
+        old_pos = self.ypos
+        self.ypos = self.center + diff * 40
+        self.ypos_anim = KFAnim((0, old_pos), (.14, (self.ypos+old_pos)/2), (.2, self.ypos))
+
+    def on_update(self, dt):
+        self.ypos = self.ypos_anim.eval(self.time)
+        self._set_points()
+        self.time += dt
+    
+
 # Override Ellipse class to add centered functionality.
 # use cpos and csize to set/get the ellipse based on a centered registration point
 # instead of a bottom-left registration point
