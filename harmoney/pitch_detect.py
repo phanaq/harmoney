@@ -85,6 +85,13 @@ class MainWidget(BaseWidget) :
         
         self.staff = Staff(100, 50)
         self.canvas.add(self.staff)
+
+        self.pitch = 0
+        self.anim_group = AnimGroup()
+        self.canvas.add(self.anim_group)
+        self.pointer = Pointer(self.staff)
+        self.anim_group.add(self.pointer)
+
         self.setup()
     def setup(self):
         self.filename = sys.argv[1]
@@ -120,14 +127,18 @@ class MainWidget(BaseWidget) :
         samples, read = self.s()
         pitch = self.pitch_o(samples)[0]
         pitch = int(round(pitch))
+        if pitch != self.pitch and pitch != 0:
+            self.pitch = pitch
+            self.pointer.set_pitch(self.pitch)
         confidence = self.pitch_o.get_confidence()
         #if confidence < 0.8: pitch = 0.
-        print("%f %f %f" % (self.total_frames / float(self.samplerate), pitch, confidence))
+        # print("%f %f %f" % (self.total_frames / float(self.samplerate), pitch, confidence))
         self.pitches += [pitch]
         self.confidences += [confidence]
         self.total_frames += read
         # if read < hop_s: break
-        self.label.text = str(pitch)
+        self.anim_group.on_update()
+        self.label.text = str(self.pitch)
 
 run(MainWidget)
 # #print pitches

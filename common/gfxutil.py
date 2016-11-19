@@ -11,7 +11,7 @@
 
 from kivy.clock import Clock as kivyClock
 from kivy.graphics.instructions import InstructionGroup
-from kivy.graphics import Rectangle, Ellipse, Color, Fbo, ClearBuffers, ClearColor, Line
+from kivy.graphics import Rectangle, Ellipse, Color, Fbo, ClearBuffers, ClearColor, Line, Triangle
 from kivy.graphics import PushMatrix, PopMatrix, Scale, Callback
 from kivy.graphics.texture import Texture
 from kivy.uix.label import Label
@@ -30,17 +30,22 @@ def topleft_label() :
 
 
 class Pointer(InstructionGroup):
-    def __init__(self):
+    def __init__(self, staff):
         super(Pointer, self).__init__()
-        self.center = Window.height / 2
+        self.half_line_width = staff.line_width / 2
+        self.center = staff.bottom_y
+
+        half_steps = [0,1,2,3,4,5,6,7,8,9,10,11]
+        staff_steps = [0,.5,1,1.5,2,3,3.5,4,4.5,5,5.5,6]
+        self.steps = dict(zip(half_steps, staff_steps))
 
         self.add(PushMatrix())
-        self.pointer_width = 100
-        self.pointer_height = 30
+        self.pointer_width = 30
+        self.pointer_height = 10
 
         self.color = Color(1,1,1,1)
         self.add(self.color)
-        self.xpos = 300
+        self.xpos = 100
         self.ypos = self.center
 
         self.pointer = Triangle()
@@ -62,16 +67,22 @@ class Pointer(InstructionGroup):
 
     def set_pitch(self, pitch):
         self.time = 0
-        diff = pitch - 60
         old_pos = self.ypos
-        self.ypos = self.center + diff * 40
-        self.ypos_anim = KFAnim((0, old_pos), (.14, (self.ypos+old_pos)/2), (.2, self.ypos))
+        diff = self._get_diff(pitch)
+        self.ypos = self.center + diff 
+        self.ypos_anim = KFAnim((0, old_pos), (.15, self.ypos))
+
+    def _get_diff(self, pitch):
+        half_steps = (pitch - 60) % 12
+        staff_diff = self.steps[half_steps]
+        diff = self.half_line_width * staff_diff
+        return diff
 
     def on_update(self, dt):
         self.ypos = self.ypos_anim.eval(self.time)
         self._set_points()
         self.time += dt
-    
+
 
 # Override Ellipse class to add centered functionality.
 # use cpos and csize to set/get the ellipse based on a centered registration point
