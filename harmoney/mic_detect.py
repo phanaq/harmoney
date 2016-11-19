@@ -38,7 +38,7 @@ class MainWidget(BaseWidget) :
         self.mixer = Mixer()
         self.audio.set_generator(self.mixer)
 
-        self.record = False
+        self.record = True
         self.input_buffers = []
 
         self.label = topleft_label()
@@ -90,14 +90,7 @@ class MainWidget(BaseWidget) :
     def on_key_down(self, keycode, modifiers):
         # start recording
         if keycode[1] == 'r':
-            print 'start recording'
-            self.record = True
-
-    def on_key_up(self, keycode):
-        if keycode[1] == 'r':
-            print 'stop recording'
-            self.record = False
-            self._process_input()
+            self.record = False if self.record else True
 
     def _process_input(self) :
         pass
