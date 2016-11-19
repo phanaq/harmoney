@@ -32,7 +32,7 @@ class WaveArray(object):
 # data using a WaveGenerator
 class MainWidget(BaseWidget) :
     def __init__(self):
-        super(MainWidget1, self).__init__()
+        super(MainWidget, self).__init__()
 
         self.audio = Audio(2, input_func=self.receive_audio)
         self.mixer = Mixer()
