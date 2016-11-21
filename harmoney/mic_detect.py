@@ -70,6 +70,12 @@ class MainWidget(BaseWidget) :
         self.pitch_o.set_unit("midi")
         self.pitch_o.set_tolerance(self.tolerance)
 
+        self.filename = 'treat_you_better.wav'
+        self.wave_gen = WaveGenerator(WaveFile(self.filename))
+        self.wave_gen.frame = 44100 * 28
+        self.wave_gen.pause()
+        self.mixer.add(self.wave_gen)
+
     def on_update(self):
         self.audio.on_update()
         self.anim_group.on_update()
@@ -91,6 +97,10 @@ class MainWidget(BaseWidget) :
         # start recording
         if keycode[1] == 'r':
             self.record = False if self.record else True
+
+        if keycode[1] == 'p':
+            print 'toggle song'
+            self.wave_gen.play_toggle()
 
     def _process_input(self) :
         pass
