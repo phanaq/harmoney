@@ -30,6 +30,23 @@ class Staff(InstructionGroup) :
         for line in lines:
             self.add(line)
 
+class NoteBlock(InstructionGroup):
+    def __init__(self, pos, width):
+        super(NoteBlock, self).__init__()
+        self.height = 30
+        self.width = width
+        self.pos = (pos[0], pos[1] - self.height / 2)
+        self.color = Color(0, 1, 0)
+        self.rect = Rectangle(pos=self.pos, size=(self.width, self.height))
+        self.add(self.color)
+        self.add(self.rect)
+
+    def on_hit(self):
+        pass
+
+    def on_pass(self):
+        pass
+
 class MainWidget(BaseWidget) :
     def __init__(self):
         super(MainWidget, self).__init__()
@@ -53,6 +70,11 @@ class MainWidget(BaseWidget) :
         self.canvas.add(self.anim_group)
         self.pointer = Pointer(self.staff)
         self.anim_group.add(self.pointer)
+
+        self.testBlock = NoteBlock((100, 150), 100)
+        self.testBlock2 = NoteBlock((200, 200), 100)
+        self.canvas.add(self.testBlock)
+        self.canvas.add(self.testBlock2)
 
         self.setup()
 
