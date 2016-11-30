@@ -114,7 +114,7 @@ class TrackPointer(InstructionGroup):
         self.color = Color(1,1,1,1)
         self.add(self.color)
         self.xpos = 150 - self.pointer_width
-        self.ypos = np.interp(60, [58,74], [floorY, ceilingY])
+        self.ypos = np.interp(60, [58,77], [floorY, ceilingY])
         self.ps = ps
         self.ps.emitter_x = self.xpos
         self.ps.emitter_y = self.ypos
@@ -140,7 +140,7 @@ class TrackPointer(InstructionGroup):
         # print pitch
         self.time = 0
         old_pos = self.ypos
-        self.ypos = np.interp(pitch, [58,74], [self.floorY, self.ceilingY])
+        self.ypos = np.interp(pitch, [58,77], [self.floorY, self.ceilingY])
         self.ypos_anim = KFAnim((0, old_pos), (.15, self.ypos))
 
     def change_pointer_angle(self, dir):
