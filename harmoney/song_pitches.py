@@ -270,6 +270,10 @@ class MainWidget(BaseWidget) :
             else:
                 harmony_is_valid = False
                 self.td.pd.pointer.change_pointer_angle(0)
+            if not harmony_is_valid:
+                self.ps.stop()
+            else:
+                self.ps.start()
         self.td.on_update()
         self.label.text = "Melody: " + str(not self.ac.melody_mute) + "\n"
         self.label.text += "Harmony: " + str(not self.ac.harmony_mute) + "\n"
