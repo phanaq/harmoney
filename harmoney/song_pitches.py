@@ -196,6 +196,11 @@ class AudioController(object):
     def _process_input(self):
         pass
 
+    # start / stop the song
+    def toggle(self):
+        self.melody_track.play_toggle()
+        self.harmony_track.play_toggle()
+
     def toggle_melody(self):
         if self.melody_mute:
             #unmute
