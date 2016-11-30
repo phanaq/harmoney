@@ -8,6 +8,7 @@ from common.mixer import *
 from common.wavegen import *
 from common.wavesrc import *
 from common.clock import *
+from common.kivyparticle import ParticleSystem
 
 from common.gfxutil import *
 from aubio import source, pitch
@@ -102,11 +103,11 @@ class TrackData(object):
 
 
 class PointerDisplay(InstructionGroup):
-    def __init__(self, nowbar_offset):
+    def __init__(self, nowbar_offset, ps):
         super(PointerDisplay, self).__init__()
         self.anim_group = AnimGroup()
         self.add(self.anim_group)
-        self.pointer = TrackPointer(nowbar_offset, h/4., 3*h/4.)
+        self.pointer = TrackPointer(nowbar_offset, h/4., 3*h/4., ps)
         self.anim_group.add(self.pointer)
         self.pitch = 60
 
@@ -115,7 +116,7 @@ class PointerDisplay(InstructionGroup):
 
 
 class TracksDisplay(InstructionGroup):
-    def __init__(self, song_data_lists, clock):
+    def __init__(self, song_data_lists, clock, ps):
         super(TracksDisplay, self).__init__()
         self.clock = clock
         self.song_data_lists = song_data_lists
@@ -126,7 +127,7 @@ class TracksDisplay(InstructionGroup):
         self.nowbar = Line(points=[self.nowbar_offset, 0, self.nowbar_offset, h], dash_offset=10)
         self.add(self.nowbar)
 
-        self.pd = PointerDisplay(self.nowbar_offset)
+        self.pd = PointerDisplay(self.nowbar_offset, ps)
         self.add(self.pd)
         
         self.trans = Translate()
@@ -225,93 +226,15 @@ class AudioController(object):
 class MainWidget(BaseWidget) :
     def __init__(self):
         super(MainWidget, self).__init__()
-
-        self.audio = Audio(2, input_func=self.receive_audio)
-        self.mixer = Mixer()
-        self.audio.set_generator(self.mixer)
-
-        self.record = True
-        self.input_buffers = []
-
-        self.label = topleft_label()
-        self.add_widget(self.label)
-        self.label.text = "0"
-        
-        self.staff = Staff(100, 50)
-        self.canvas.add(self.staff)
-
-        self.pitch = 0
-        self.anim_group = AnimGroup()
-        self.canvas.add(self.anim_group)
-        self.pointer = Pointer(self.staff)
-        self.anim_group.add(self.pointer)
-
-        self.testBlock = NoteBlock((100, 150), 100)
-        self.testBlock2 = NoteBlock((200, 200), 100)
-        self.canvas.add(self.testBlock)
-        self.canvas.add(self.testBlock2)
-
-        self.setup()
-
-    def setup(self):
-        self.downsample = 1
-        self.samplerate = 44100 // self.downsample
-        if len( sys.argv ) > 2: self.samplerate = int(sys.argv[2])
-
-        self.win_s = 4096 // self.downsample # fft size
-        self.hop_s = 512  // self.downsample # hop size
-
-        self.tolerance = 0.8
-
-        self.pitch_o = pitch("yin", self.win_s, self.hop_s, self.samplerate)
-        self.pitch_o.set_unit("midi")
-        self.pitch_o.set_tolerance(self.tolerance)
-
-        self.filename = 'treat_you_better.wav'
-        self.wave_gen = WaveGenerator(WaveFile(self.filename))
-        self.wave_gen.frame = 44100 * 28
-        self.wave_gen.pause()
-        self.mixer.add(self.wave_gen)
-
-    def on_update(self):
-        self.audio.on_update()
-        self.anim_group.on_update()
-
-        if self.record:
-            if len(self.input_buffers) > 0:
-                pitch = self.pitch_o(self.input_buffers.pop(0)[:512])[0]
-                pitch = int(round(pitch))
-                if pitch != self.pitch:
-                    self.pitch = pitch
-                    self.pointer.set_pitch(self.pitch)
-                self.label.text = str(pitch)
-
-    def receive_audio(self, frames, num_channels):
-        if self.record:
-            self.input_buffers.append(frames)
-
-    def on_key_down(self, keycode, modifiers):
-        # start recording
-        if keycode[1] == 'r':
-            self.record = False if self.record else True
-
-        if keycode[1] == 'p':
-            print 'toggle song'
-            self.wave_gen.play_toggle()
-
-    def _process_input(self) :
-        pass
-
-class MainWidget2(BaseWidget) :
-    def __init__(self):
-        super(MainWidget2, self).__init__()
         self.clock = Clock()
         self.label = topleft_label()
         self.add_widget(self.label)
         self.ac = AudioController("sound_of_silence")
         self.trackdata = TrackData("melody_data.txt")
         self.trackdata2 = TrackData("harmony_data.txt")
-        self.td = TracksDisplay([self.trackdata, self.trackdata2], self.clock)
+        self.ps = ParticleSystem('../common/particle/particle.pex')     
+        self.add_widget(self.ps)
+        self.td = TracksDisplay([self.trackdata, self.trackdata2], self.clock, self.ps)
         self.canvas.add(self.td)
 
         self.pitch = 60
@@ -338,6 +261,5 @@ class MainWidget2(BaseWidget) :
         self.label.text += "Harmony: " + str(not self.ac.harmony_mute) + "\n"
 
 
-
-run(MainWidget2)
+run(MainWidget)
 

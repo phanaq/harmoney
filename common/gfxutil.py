@@ -32,7 +32,7 @@ def topleft_label() :
 
 
 class Pointer(InstructionGroup):
-    def __init__(self, staff):
+    def __init__(self, staff, ps):
         super(Pointer, self).__init__()
 
         self.rotate = Rotate()
@@ -52,6 +52,9 @@ class Pointer(InstructionGroup):
         self.add(self.color)
         self.xpos = 100
         self.ypos = self.center
+
+        self.ps = ps
+
 
         self.pointer = Triangle()
         self._set_points()
@@ -98,7 +101,7 @@ class Pointer(InstructionGroup):
 
 
 class TrackPointer(InstructionGroup):
-    def __init__(self, nowbar_offset, floorY, ceilingY):
+    def __init__(self, nowbar_offset, floorY, ceilingY, ps):
         super(TrackPointer, self).__init__()
 
         self.harmony_detector = HarmonyDetector('minor', 63)
@@ -117,6 +120,10 @@ class TrackPointer(InstructionGroup):
         self.add(self.color)
         self.xpos = 150 - self.pointer_width
         self.ypos = np.interp(60, [58,74], [floorY, ceilingY])
+        self.ps = ps
+        self.ps.emitter_x = self.xpos
+        self.ps.emitter_y = self.ypos
+        self.ps.start()
 
         self.pointer = Triangle()
         self._set_points()
@@ -152,6 +159,7 @@ class TrackPointer(InstructionGroup):
 
     def on_update(self, dt):
         self.ypos = self.ypos_anim.eval(self.time)
+        self.ps.emitter_y = self.ypos
         self._set_points()
         self.time += dt
         self.change_pointer_angle(0)
