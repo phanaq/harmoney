@@ -47,7 +47,7 @@ class NoteBlock(InstructionGroup): # modified from lab4
         super(NoteBlock, self).__init__()
 
         x = xpos
-        y = np.interp(pitch, [58, 74], [floorY, ceilingY])
+        y = np.interp(pitch, [58, 77], [floorY, ceilingY])
 
         self.color = color
         self.color.a = .65
