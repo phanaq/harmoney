@@ -125,6 +125,7 @@ class TracksDisplay(InstructionGroup):
         self.remove_list = []
         self.nowbar_offset = 150
         self.nowbar = Line(points=[self.nowbar_offset, 0, self.nowbar_offset, h], dash_offset=10)
+        self.add(Color(rgb=(1, 1, 1)))
         self.add(self.nowbar)
 
         self.pd = PointerDisplay(self.nowbar_offset, ps)
