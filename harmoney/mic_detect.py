@@ -29,6 +29,7 @@ class Staff(InstructionGroup) :
             lines.append(line)
         for line in lines:
             self.add(line)
+            
 
 class NoteBlock(InstructionGroup):
     def __init__(self, pos, width):
@@ -46,6 +47,38 @@ class NoteBlock(InstructionGroup):
 
     def on_pass(self):
         pass
+
+
+# holds data for gems and barlines.
+class SongData(object):
+    def __init__(self):
+        super(SongData, self).__init__()
+
+        # list of tuples of the form (midi value, start time, duration)
+        self.notes = []
+
+    # read the annotation data
+    # notes are annotated by their midi value, with periods of silence labelled by 0
+    def read_data(self, solo_file):
+        solo = open(solo_file)
+        lines = solo.readlines()
+
+        # for each line, remove \n and split by \t
+        for ind in range(len(lines)):
+            line = lines[ind]
+            tokens = line.strip().split("\t")
+
+            # 0 means silence
+            if int(tokens[1]) != 0:
+
+                # get start time of next note to calculate duration
+                next_line = lines[ind+1]
+                next_tokens = next_line.strip().split("\t")
+                self.notes.append((int(tokens[1]), float(tokens[0]), float(next_tokens[0]) - float(tokens[0])))
+
+    def get_notes(self):
+        return self.notes
+
 
 class MainWidget(BaseWidget) :
     def __init__(self):
