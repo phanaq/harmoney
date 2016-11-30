@@ -20,6 +20,8 @@ from kivy.graphics import PushMatrix, PopMatrix, Translate, Scale, Rotate
 from kivy.graphics.instructions import InstructionGroup
 from kivy.clock import Clock as kivyClock
 
+from harmony_detect import *
+
 w = Window.width
 h = Window.height
 
@@ -238,7 +240,9 @@ class MainWidget(BaseWidget) :
         self.td = TracksDisplay([self.trackdata, self.trackdata2], self.clock, self.ps)
         self.canvas.add(self.td)
 
-        self.pitch = 60
+        self.harmony_detect = HarmonyDetector('minor', 63)
+        self.pitch = 63
+        self.melody_pitch = 63
 
     def on_key_down(self, keycode, modifiers):
         # play / pause toggle
@@ -254,13 +258,24 @@ class MainWidget(BaseWidget) :
 
     def on_update(self) :
         self.ac.on_update()
+        self.get_melody_pitch()
         if self.ac.pitch != self.pitch:
             self.pitch = self.ac.pitch
             self.td.pd.pointer.set_pitch(self.pitch)
+            diff, harmony_is_valid = self.harmony_detect.check_harmony(self.melody_pitch, self.pitch)
+            # print diff
+            # print harmony_is_valid
+            self.td.pd.pointer.change_pointer_angle(diff)
         self.td.on_update()
         self.label.text = "Melody: " + str(not self.ac.melody_mute) + "\n"
         self.label.text += "Harmony: " + str(not self.ac.harmony_mute) + "\n"
 
+    def get_melody_pitch(self):
+        time = self.clock.get_time()
+        notes = self.trackdata.get_notes_in_range(time, time+0.1)
+        if notes:
+            melody_pitch = notes[0][1]
+            self.melody_pitch = melody_pitch
 
 run(MainWidget)
 

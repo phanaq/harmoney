@@ -146,11 +146,11 @@ class TrackPointer(InstructionGroup):
     def change_pointer_angle(self, dir):
         self.rotate.origin = (self.xpos + self.pointer_width, self.ypos)
         if dir > 0:
-            self.rotate.angle = 5
+            self.rotate.angle = 3
         elif dir == 0:
             self.rotate.angle = 0
         else:
-            self.rotate.angle = -5
+            self.rotate.angle = -3
 
     def on_update(self, dt):
         self.ypos = self.ypos_anim.eval(self.time)
