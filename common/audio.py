@@ -67,6 +67,7 @@ class Audio(object):
 
         # Ask the generator to generate some audio samples.
         num_frames = self.stream.get_write_available() # number of frames to supply
+        # num_frames=512
         if self.generator and num_frames != 0:
             (data, continue_flag) = self.generator.generate(num_frames, self.num_channels)
             if data.dtype != np.float32:
@@ -104,6 +105,7 @@ class Audio(object):
 
         # First, try loading config params from configuration file.
         try:
+            print_audio_devices()
             config = ConfigParser()
             config.read(('../common/config.cfg', 'config.cfg'))
             out_dev = config.getint('audio', 'outputdevice')

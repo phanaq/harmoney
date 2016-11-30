@@ -35,30 +35,10 @@ class Staff(InstructionGroup) :
         for line in lines:
             self.add(line)
 
-# class NoteBlock(InstructionGroup):
-#     def __init__(self, pos, width):
-#         super(NoteBlock, self).__init__()
-#         self.height = 30
-#         self.width = width
-#         self.pos = (pos[0], pos[1] - self.height / 2)
-#         self.color = Color(0, 1, 0)
-#         self.rect = Rectangle(pos=self.pos, size=(self.width, self.height))
-#         self.add(self.color)
-#         self.add(self.rect)
-
-#     def on_hit(self):
-#         pass
-
-#     def on_pass(self):
-#         pass
-
-# self.notes = [] #list of tuples of (pitch, dur)
-
-
 
 #colors for note blocks: white, pink, red, orange, yellow, green, light blue, dark blue, purple
 rainbowRGB = [(1, 1, 1), (1, .4, 1), (1, 0, 0), (1, .4, 0), (1, 1, 0), (.4, 1, .2), (0, 1, 1), (0, 0, 1), (.4, 0, .8)]
-# Parts 3,4
+
 class NoteBlock(InstructionGroup): # modified from lab4
     def __init__(self, pitch, duration, floorY, ceilingY, color, xpos):
         super(NoteBlock, self).__init__()
@@ -66,34 +46,14 @@ class NoteBlock(InstructionGroup): # modified from lab4
         x = xpos
         y = np.interp(pitch, [58, 74], [floorY, ceilingY])
 
-        # if isArp:
-        #     self.color = Color(rgb = rainbowRGB[colorIndex])
-        # else: #is note seq
-        #     self.color = Color(rgb = (1, 1, 1))
         self.color = color
         self.color.a = .65
         #length of block is directly proportional to duration
-        # self.rect = Rectangle(size = (float(duration)/480 * 120, 30), pos=(x,y))
+
         self.rect = Rectangle(size = (float(duration) * 200, 30), pos=(x,y))
 
         self.add(self.color)
         self.add(self.rect)
-
-        # self.time = 0
-        # dur = 2
-        # self.alpha_anim = KFAnim((0, 1.), (dur, 0.))
-        # self.pos_anim   = KFAnim((0, x, y), (dur, 0., y))
-
-        # self.on_update(0)
-
-    # def on_update(self, dt):
-    #     self.time += dt
-
-    #     #fading and sliding across screen
-    #     self.color.a = self.alpha_anim.eval(self.time)
-    #     self.rect.pos = self.pos_anim.eval(self.time)
-
-    #     return self.alpha_anim.is_active(self.time)
 
     def on_update(self):
         pass
@@ -110,27 +70,7 @@ class TrackData(object):
             pitch = note[0]
             dur = note[2]
             self.note_dict[start_time] = (pitch, dur)
-        # self.note_dict = {4: (60, 1), 5: (62, 1), 6: (64, 1)}
 
-
-
-        # self.barline_dict = {}
-        # self.read_data(note_file, barline_file)
-    # read the notes and song data. You may want to add a secondary filepath
-    # argument if your barline data is stored in a different txt file.
-    # def read_data(self, note_file, barline_file):
-    #     note_lines = lines_from_file(note_file)
-    #     bar_lines = lines_from_file(barline_file)
-    #     for note_line in note_lines:
-    #         tokens = tokens_from_line(note_line)
-    #         time = float(tokens[0])+ .275
-    #         lane = float(tokens[1])
-    #         self.note_dict[time] = lane
-    #     for bar_line in bar_lines:
-    #         tokens = tokens_from_line(bar_line)
-    #         time = float(tokens[0]) + .15
-    #         lane = int(tokens[1])
-    #         self.barline_dict[time] = lane
 
     def read_data(self, solo_file):
         solo = open(solo_file)
@@ -149,9 +89,6 @@ class TrackData(object):
                 next_tokens = next_line.strip().split("\t")
                 self.notes.append((int(tokens[1])+1, float(tokens[0]), float(next_tokens[0]) - float(tokens[0])))
 
-    # def get_notes(self):
-    #     return self.notes
-
     def get_notes(self):
         return self.note_dict #dict w key = note times, val = (pitch, dur)
 
@@ -162,35 +99,6 @@ class TrackData(object):
             if note_time >= start_time and note_time <= end_time:
                 notes_in_range.append((note_time, self.note_dict[note_time][0], self.note_dict[note_time][1]))
         return notes_in_range #list of gem times
-
-# class SongData(object):
-#     def __init__(self):
-#         super(SongData, self).__init__()
-
-#         # list of tuples of the form (midi value, start time, duration)
-#         self.notes = []
-
-#     # read the annotation data
-#     # notes are annotated by their midi value, with periods of silence labelled by 0
-#     def read_data(self, solo_file):
-#         solo = open(solo_file)
-#         lines = solo.readlines()
-
-#         # for each line, remove \n and split by \t
-#         for ind in range(len(lines)):
-#             line = lines[ind]
-#             tokens = line.strip().split("\t")
-
-#             # 0 means silence
-#             if int(tokens[1]) != 0:
-
-#                 # get start time of next note to calculate duration
-#                 next_line = lines[ind+1]
-#                 next_tokens = next_line.strip().split("\t")
-#                 self.notes.append((int(tokens[1]), float(tokens[0]), float(next_tokens[0]) - float(tokens[0])))
-
-#     def get_notes(self):
-#         return self.notes
 
 
 class PointerDisplay(InstructionGroup):
@@ -212,8 +120,7 @@ class TracksDisplay(InstructionGroup):
         self.clock = clock
         self.song_data_lists = song_data_lists
         self.notes_on_screen = {}
-        # self.barlines_on_screen = []
-        # self.nowbar = []
+
         self.remove_list = []
         self.nowbar_offset = 150
         self.nowbar = Line(points=[self.nowbar_offset, 0, self.nowbar_offset, h], dash_offset=10)
@@ -231,42 +138,23 @@ class TracksDisplay(InstructionGroup):
         for trackIndex in range(len(self.song_data_lists)):
             track = self.song_data_lists[trackIndex]
             colorRGB = rainbowRGB[trackIndex]
-            # print "notes in range: ", track.get_notes_in_range(self.clock.get_time(), self.clock.get_time() + 5)
             for (note_time, note_pitch, note_dur) in track.get_notes_in_range(self.clock.get_time(), self.clock.get_time() + 4):
-                # print (note_time, note_pitch, note_dur)
                 if note_time not in self.notes_on_screen:
-                    # print "track index, note time adding: ", trackIndex, note_time
+
                     notedisp = NoteBlock(note_pitch, note_dur, h/4., 3*h/4., Color(rgb=colorRGB), note_time*200 + self.nowbar_offset)
                     self.notes_on_screen[note_time] = notedisp
                     self.add(notedisp)
-
-
-        # for (note_pitch, note_dur) in track.get_notes_in_range(self.clock.get_time() + 1, self.clock.get_time() + 5):
-        #     if note_time not in self.notes_on_screen:
-
-        #         notedisp = noteDisplay((note_lane*w/8 + w/8, note_time*100 + 100), Color(rgb=(1, 1, 1)), self.streak)
-        #         self.notes_on_screen[note_time] = notedisp
-        #         self.add(notedisp)
-            # else:
-            #     if self.streak:
-            #         self.notes_on_screen[note_time].change_to_streak()
-        # self.updated += 1
-        # for (barline_time, barline_lane) in self.song_data.get_barlines_in_range(self.clock.get_time(), self.clock.get_time() + 5):
-        #     if barline_time not in self.barlines_on_screen:
-        #         self.barlines_on_screen.append(barline_time)
-        #         barlinedisp = BarLineDisplay((barline_lane*Window.width/6, barline_time*100 + 100), Color(rgb=(1, 1, 1)))
-        #         self.add(barlinedisp)
 
         for note_time in self.notes_on_screen:
             if note_time not in self.remove_list and self.clock.get_time() - note_time > 3: #note is off the screen
 
                 self.remove_list.append(note_time)
-        # self.counter += 1
+
         for note_time in self.remove_list:
             note = self.notes_on_screen[note_time]
             self.remove(note)
             self.remove_list.remove(note_time)
-            # print "removing note ", note_time
+
             del self.notes_on_screen[note_time]
         self.trans.x = -self.clock.get_time() * 200
 
@@ -279,10 +167,12 @@ class AudioController(object):
         self.song = song_path
         melody_path = self.song + '_melody.wav'
         harmony_path = self.song + '_harmony.wav'
-        self.harmony_track = WaveGenerator(WaveFile(melody_path))
-        self.melody_track = WaveGenerator(WaveFile(harmony_path))
+        self.melody_track = WaveGenerator(WaveFile(melody_path))
+        self.harmony_track = WaveGenerator(WaveFile(harmony_path))
         self.mixer.add(self.melody_track)
         self.mixer.add(self.harmony_track)
+        self.melody_mute = False
+        self.harmony_mute = False
 
         self.pitch = 0
         self.input_buffers = []
@@ -302,21 +192,24 @@ class AudioController(object):
     def _process_input(self):
         pass
 
-    # # start / stop the song
-    # def toggle(self):
-    #     self.solo_track.play_toggle()
-    #     self.bg_track.play_toggle()
+    def toggle_melody(self):
+        if self.melody_mute:
+            #unmute
+            self.melody_track.set_gain(1.0)
+        else:
+            #mute
+            self.melody_track.set_gain(0)
+        self.melody_mute = not self.melody_mute
 
-    # # mute / unmute the solo track
-    # def set_mute(self, mute):
-    #     if mute:
-    #         self.solo_track.set_gain(0)
-    #     else:
-    #         self.solo_track.set_gain(1.0)
 
-    # # play a sound-fx (miss sound)
-    # def play_sfx(self):
-    #     self.mixer.add(WaveGenerator(WaveFile("../data/raspberry.wav")))
+    def toggle_harmony(self):
+        if self.harmony_mute:
+            #unmute
+            self.harmony_track.set_gain(1.0)
+        else:
+            #mute
+            self.harmony_track.set_gain(0)
+        self.harmony_mute = not self.harmony_mute
 
     # needed to update audio
     def on_update(self):
@@ -413,6 +306,8 @@ class MainWidget2(BaseWidget) :
     def __init__(self):
         super(MainWidget2, self).__init__()
         self.clock = Clock()
+        self.label = topleft_label()
+        self.add_widget(self.label)
         self.ac = AudioController("sound_of_silence")
         self.trackdata = TrackData("melody_data.txt")
         self.trackdata2 = TrackData("harmony_data.txt")
@@ -421,13 +316,26 @@ class MainWidget2(BaseWidget) :
 
         self.pitch = 60
 
+    def on_key_down(self, keycode, modifiers):
+        # play / pause toggle
+        if keycode[1] == 'p':
+            self.ac.toggle()
+            self.clock.toggle()
+
+        if keycode[1] == 'm':
+            self.ac.toggle_melody()
+
+        if keycode[1] == 'h':
+            self.ac.toggle_harmony()
+
     def on_update(self) :
         self.ac.on_update()
         if self.ac.pitch != self.pitch:
             self.pitch = self.ac.pitch
             self.td.pd.pointer.set_pitch(self.pitch)
         self.td.on_update()
-
+        self.label.text = "Melody: " + str(not self.ac.melody_mute) + "\n"
+        self.label.text += "Harmony: " + str(not self.ac.harmony_mute) + "\n"
 
 
 

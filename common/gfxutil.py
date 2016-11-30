@@ -26,7 +26,7 @@ import numpy as np
 # the top-left of the screen
 def topleft_label() :
     l = Label(text = "text", valign='top', font_size='20sp',
-              pos=(Window.width * 0.5, Window.height * 0.4),
+              pos=(Window.width * 0.45, Window.height * 0.4),
               text_size=(Window.width, Window.height))
     return l
 
