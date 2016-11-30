@@ -147,7 +147,7 @@ class TrackData(object):
                 # get start time of next note to calculate duration
                 next_line = lines[ind+1]
                 next_tokens = next_line.strip().split("\t")
-                self.notes.append((int(tokens[1]), float(tokens[0]), float(next_tokens[0]) - float(tokens[0])))
+                self.notes.append((int(tokens[1])+1, float(tokens[0]), float(next_tokens[0]) - float(tokens[0])))
 
     # def get_notes(self):
     #     return self.notes
@@ -193,6 +193,19 @@ class TrackData(object):
 #         return self.notes
 
 
+class PointerDisplay(InstructionGroup):
+    def __init__(self, nowbar_offset):
+        super(PointerDisplay, self).__init__()
+        self.anim_group = AnimGroup()
+        self.add(self.anim_group)
+        self.pointer = TrackPointer(nowbar_offset, h/4., 3*h/4.)
+        self.anim_group.add(self.pointer)
+        self.pitch = 60
+
+    def on_update(self):
+        self.anim_group.on_update()
+
+
 class TracksDisplay(InstructionGroup):
     def __init__(self, song_data_lists, clock):
         super(TracksDisplay, self).__init__()
@@ -205,10 +218,16 @@ class TracksDisplay(InstructionGroup):
         self.nowbar_offset = 150
         self.nowbar = Line(points=[self.nowbar_offset, 0, self.nowbar_offset, h], dash_offset=10)
         self.add(self.nowbar)
+
+        self.pd = PointerDisplay(self.nowbar_offset)
+        self.add(self.pd)
+        
         self.trans = Translate()
         self.add(self.trans)
 
     def on_update(self) :
+        self.pd.on_update()
+
         for trackIndex in range(len(self.song_data_lists)):
             track = self.song_data_lists[trackIndex]
             colorRGB = rainbowRGB[trackIndex]
@@ -254,7 +273,7 @@ class TracksDisplay(InstructionGroup):
 class AudioController(object):
     def __init__(self, song_path):
         super(AudioController, self).__init__()
-        self.audio = Audio(2)
+        self.audio = Audio(2, input_func = self.receive_audio)
         self.mixer = Mixer()
         self.audio.set_generator(self.mixer)
         self.song = song_path
@@ -264,6 +283,24 @@ class AudioController(object):
         self.melody_track = WaveGenerator(WaveFile(harmony_path))
         self.mixer.add(self.melody_track)
         self.mixer.add(self.harmony_track)
+
+        self.pitch = 0
+        self.input_buffers = []
+        self.downsample = 1
+        self.samplerate = 44100 // self.downsample
+        if len( sys.argv ) > 2: self.samplerate = int(sys.argv[2])
+        self.win_s = 4096 // self.downsample # fft size
+        self.hop_s = 512  // self.downsample # hop size
+        self.tolerance = 0.8
+        self.pitch_o = pitch("yin", self.win_s, self.hop_s, self.samplerate)
+        self.pitch_o.set_unit("midi")
+        self.pitch_o.set_tolerance(self.tolerance)
+
+    def receive_audio(self, frames, num_channels):
+        self.input_buffers.append(frames)
+
+    def _process_input(self):
+        pass
 
     # # start / stop the song
     # def toggle(self):
@@ -285,6 +322,11 @@ class AudioController(object):
     def on_update(self):
         self.audio.on_update()
 
+        if len(self.input_buffers) > 0:
+            pitch = self.pitch_o(self.input_buffers.pop(0)[:512])[0]
+            pitch = int(round(pitch))
+            if pitch != self.pitch:
+                self.pitch = pitch
 
 
 class MainWidget(BaseWidget) :
@@ -371,47 +413,20 @@ class MainWidget2(BaseWidget) :
     def __init__(self):
         super(MainWidget2, self).__init__()
         self.clock = Clock()
-        # self.label = topright_label()
-        # self.add_widget(self.label)
         self.ac = AudioController("sound_of_silence")
         self.trackdata = TrackData("melody_data.txt")
         self.trackdata2 = TrackData("harmony_data.txt")
-        # self.songdata = SongData("../data/solo_gems_final.txt", "../data/barlines.txt")
-        # self.beatmatchdisplay = BeatMatchDisplay(self.songdata, self.clock)
         self.td = TracksDisplay([self.trackdata, self.trackdata2], self.clock)
         self.canvas.add(self.td)
-        # self.player = Player(self.songdata, self.beatmatchdisplay, self.ac)
-        
 
-    # def on_key_down(self, keycode, modifiers):
-    #     # play / pause toggle
-    #     if keycode[1] == 'p':
-    #         self.ac.toggle()
-    #         self.clock.toggle()
-
-    #     if keycode[1] == 'm':
-    #         self.ac.set_mute(True)
-
-    #     # button down
-    #     button_idx = lookup(keycode[1], '12345', (0,1,2,3,4))
-    #     if button_idx != None:
-    #         # print 'down', button_idx
-    #         self.player.on_button_down(button_idx)
-
-    # def on_key_up(self, keycode):
-    #     # button up
-    #     button_idx = lookup(keycode[1], '12345', (0,1,2,3,4))
-    #     if button_idx != None:
-    #         # print 'up', button_idx
-    #         self.player.on_button_up(button_idx)
+        self.pitch = 60
 
     def on_update(self) :
         self.ac.on_update()
+        if self.ac.pitch != self.pitch:
+            self.pitch = self.ac.pitch
+            self.td.pd.pointer.set_pitch(self.pitch)
         self.td.on_update()
-        # self.player.on_update()
-        # self.label.text = "SCORE: " + str(self.player.score) + "\n"
-        # self.label.text += "STREAK: " + str(self.player.streakcount) + "\n"
-        # self.label.text += "MAX STREAK: " + str(self.player.max_streak)
 
 
 

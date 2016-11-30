@@ -17,6 +17,8 @@ from kivy.graphics.texture import Texture
 from kivy.uix.label import Label
 from kivy.core.window import Window
 
+from harmony_detect import *
+
 import numpy as np
 
 
@@ -78,6 +80,66 @@ class Pointer(InstructionGroup):
         staff_diff = self.steps[half_steps]
         diff = self.half_line_width * staff_diff
         return diff
+
+    def change_pointer_angle(self, dir):
+        self.rotate.origin = (self.xpos + self.pointer_width, self.ypos)
+        if dir > 0:
+            self.rotate.angle = 5
+        elif dir == 0:
+            self.rotate.angle = 0
+        else:
+            self.rotate.angle = -5
+
+    def on_update(self, dt):
+        self.ypos = self.ypos_anim.eval(self.time)
+        self._set_points()
+        self.time += dt
+        self.change_pointer_angle(0)
+
+
+class TrackPointer(InstructionGroup):
+    def __init__(self, nowbar_offset, floorY, ceilingY):
+        super(TrackPointer, self).__init__()
+
+        self.harmony_detector = HarmonyDetector('minor', 63)
+
+        self.floorY = floorY
+        self.ceilingY = ceilingY
+
+        self.add(PushMatrix())
+        self.rotate = Rotate()
+        self.add(self.rotate)
+
+        self.pointer_width = 30
+        self.pointer_height = 10
+
+        self.color = Color(1,1,1,1)
+        self.add(self.color)
+        self.xpos = 150 - self.pointer_width
+        self.ypos = np.interp(60, [58,74], [floorY, ceilingY])
+
+        self.pointer = Triangle()
+        self._set_points()
+        self.add(self.pointer)
+
+        self.ypos_anim = KFAnim((0,0))
+        self.time = 0
+
+        self.add(PopMatrix())
+
+    def _set_points(self):
+        x_points = [self.xpos, self.xpos, self.xpos+self.pointer_width]
+        y_points = [self.ypos + self.pointer_height, self.ypos - self.pointer_height, self.ypos]
+        points = [val for pair in zip(x_points, y_points) for val in pair]
+        self.pointer.points = points
+
+    def set_pitch(self, pitch):
+        pitch = pitch + 24
+        print pitch
+        self.time = 0
+        old_pos = self.ypos
+        self.ypos = np.interp(pitch, [58,74], [self.floorY, self.ceilingY])
+        self.ypos_anim = KFAnim((0, old_pos), (.15, self.ypos))
 
     def change_pointer_angle(self, dir):
         self.rotate.origin = (self.xpos + self.pointer_width, self.ypos)
