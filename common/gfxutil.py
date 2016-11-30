@@ -12,7 +12,7 @@
 from kivy.clock import Clock as kivyClock
 from kivy.graphics.instructions import InstructionGroup
 from kivy.graphics import Rectangle, Ellipse, Color, Fbo, ClearBuffers, ClearColor, Line, Triangle
-from kivy.graphics import PushMatrix, PopMatrix, Scale, Callback
+from kivy.graphics import PushMatrix, PopMatrix, Scale, Callback, Rotate
 from kivy.graphics.texture import Texture
 from kivy.uix.label import Label
 from kivy.core.window import Window
@@ -32,6 +32,10 @@ def topleft_label() :
 class Pointer(InstructionGroup):
     def __init__(self, staff):
         super(Pointer, self).__init__()
+
+        self.rotate = Rotate()
+        self.add(self.rotate)
+
         self.half_line_width = staff.line_width / 2
         self.center = staff.bottom_y
 
@@ -39,7 +43,6 @@ class Pointer(InstructionGroup):
         staff_steps = [0,.5,1,1.5,2,3,3.5,4,4.5,5,5.5,6]
         self.steps = dict(zip(half_steps, staff_steps))
 
-        self.add(PushMatrix())
         self.pointer_width = 30
         self.pointer_height = 10
 
@@ -54,8 +57,6 @@ class Pointer(InstructionGroup):
 
         self.ypos_anim = KFAnim((0,0))
         self.time = 0
-
-        self.add(PopMatrix())
 
         self.active = False
 
@@ -78,10 +79,20 @@ class Pointer(InstructionGroup):
         diff = self.half_line_width * staff_diff
         return diff
 
+    def change_pointer_angle(self, dir):
+        self.rotate.origin = (self.xpos + self.pointer_width, self.ypos)
+        if dir > 0:
+            self.rotate.angle = 5
+        elif dir == 0:
+            self.rotate.angle = 0
+        else:
+            self.rotate.angle = -5
+
     def on_update(self, dt):
         self.ypos = self.ypos_anim.eval(self.time)
         self._set_points()
         self.time += dt
+        self.change_pointer_angle(0)
 
 
 # Override Ellipse class to add centered functionality.
