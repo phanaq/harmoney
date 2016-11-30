@@ -28,6 +28,8 @@ class HarmonyDetector():
 
 		self.diff_to_closest_harmony = diff_to_closest_harmony
 		self.harmony_is_valid = harmony_is_valid
+
+		return [self.diff_to_closest_harmony, self.harmony_is_valid]
 		# print 'diff_to_closest_harmony:', self.diff_to_closest_harmony
 		# print 'harmony_is_valid:', self.harmony_is_valid
 		# print ''
@@ -65,6 +67,8 @@ class Scale():
 	def get_step(self, numeral):
 		# Return number of half steps away from the tonic 
 		# associated with roman numeral
+		while numeral > 7:
+			numeral -= 7
 		return self.numerals_to_steps[numeral]
 
 	def _get_dicts(self):

@@ -17,8 +17,6 @@ from kivy.graphics.texture import Texture
 from kivy.uix.label import Label
 from kivy.core.window import Window
 
-from harmony_detect import *
-
 import numpy as np
 
 
@@ -103,9 +101,6 @@ class Pointer(InstructionGroup):
 class TrackPointer(InstructionGroup):
     def __init__(self, nowbar_offset, floorY, ceilingY, ps):
         super(TrackPointer, self).__init__()
-
-        self.harmony_detector = HarmonyDetector('minor', 63)
-
         self.floorY = floorY
         self.ceilingY = ceilingY
 
@@ -142,7 +137,7 @@ class TrackPointer(InstructionGroup):
 
     def set_pitch(self, pitch):
         pitch = pitch + 24
-        print pitch
+        # print pitch
         self.time = 0
         old_pos = self.ypos
         self.ypos = np.interp(pitch, [58,74], [self.floorY, self.ceilingY])
@@ -162,7 +157,6 @@ class TrackPointer(InstructionGroup):
         self.ps.emitter_y = self.ypos
         self._set_points()
         self.time += dt
-        self.change_pointer_angle(0)
 
 
 # Override Ellipse class to add centered functionality.
