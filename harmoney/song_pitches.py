@@ -261,11 +261,15 @@ class MainWidget(BaseWidget) :
         self.get_melody_pitch()
         if self.ac.pitch != self.pitch:
             self.pitch = self.ac.pitch
-            self.td.pd.pointer.set_pitch(self.pitch)
-            diff, harmony_is_valid = self.harmony_detect.check_harmony(self.melody_pitch, self.pitch)
-            # print diff
-            # print harmony_is_valid
-            self.td.pd.pointer.change_pointer_angle(diff)
+            if self.pitch != 0:
+                self.td.pd.pointer.set_pitch(self.pitch)
+                diff, harmony_is_valid = self.harmony_detect.check_harmony(self.melody_pitch, self.pitch)
+                # print diff
+                # print harmony_is_valid
+                self.td.pd.pointer.change_pointer_angle(diff)
+            else:
+                harmony_is_valid = False
+                self.td.pd.pointer.change_pointer_angle(0)
         self.td.on_update()
         self.label.text = "Melody: " + str(not self.ac.melody_mute) + "\n"
         self.label.text += "Harmony: " + str(not self.ac.harmony_mute) + "\n"
