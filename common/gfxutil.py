@@ -28,6 +28,11 @@ def topleft_label() :
               text_size=(Window.width, Window.height))
     return l
 
+def topright_label():
+    l = Label(text = "text", valign='top', font_size='20sp',
+              pos=(Window.width * 1.25, Window.height * 0.4),
+              text_size=(Window.width, Window.height))
+    return l
 
 class Pointer(InstructionGroup):
     def __init__(self, staff, ps):

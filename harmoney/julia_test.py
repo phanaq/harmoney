@@ -26,20 +26,6 @@ from harmony_detect import *
 w = Window.width
 h = Window.height
 
-class Staff(InstructionGroup) :
-    def __init__(self, bottom_y, line_width):
-        super(Staff, self).__init__()
-        self.bottom_y = bottom_y
-        self.line_width = line_width
-        lines = []
-        for i in range(1,6):
-            line_height = i*line_width + bottom_y
-            line = Line(points=[0, line_height, w, line_height])
-            lines.append(line)
-        for line in lines:
-            self.add(line)
-
-
 #colors for note blocks: white, pink, red, orange, yellow, green, light blue, dark blue, purple
 rainbowRGB = [(1, 1, 1), (1, .4, 1), (1, 0, 0), (1, .4, 0), (1, 1, 0), (.4, 1, .2), (0, 1, 1), (0, 0, 1), (.4, 0, .8)]
 
@@ -125,11 +111,9 @@ class CheckpointDisplay(InstructionGroup):
         self.start_x = center_x - self.length/2.0
         self.end_x = center_x + self.length/2.0
         self.cp_bar = Line(points=[self.start_x, self.y, self.end_x, self.y])
-        # self.cp_bar = Line(points=[w/4., h - 50, 3*w/4., h-50])
         self.add(self.cp_bar)
         self.cur_rel_pos = 0 #fraction of song played
         self.total_song_length = 186.0
-        # print "length: ", length
         self.add(Color(0, 0, 1))
         for (time, frame) in checkpoint_times:
             cp = CEllipse(cpos = (time/self.total_song_length * self.length + self.start_x, self.y), size=(10, 10))
@@ -144,6 +128,8 @@ class CheckpointDisplay(InstructionGroup):
         self.add(self.pos_disp)
     
     def on_update(self, now_time):
+        if now_time > self.total_song_length:
+            now_time = self.total_song_length
         self.cur_rel_pos = now_time/self.total_song_length
         self.pos_disp.cpos = (self.cur_rel_pos * self.length + self.start_x, self.y)
 
@@ -162,9 +148,6 @@ class TracksDisplay(InstructionGroup):
         self.add(Color(rgb=(1, 1, 1)))
         self.add(self.nowbar)
 
-
-        # self.cp_bar = Line(points=[w/4., h - 50, 3*w/4., h-50])
-        # self.add(self.cp_bar)
         self.cp_display = CheckpointDisplay(w/2., h - 50, 3*w/5)
         self.add(self.cp_display)
 
@@ -273,12 +256,16 @@ class AudioController(object):
 
 
 checkpoint_times = [(0,0), (37.5921020508, 1655296), (72.140171051, 3179008), (106.991501093, 4715008), (141.582692146, 6240256)]
+
 class MainWidget(BaseWidget) :
     def __init__(self):
         super(MainWidget, self).__init__()
         self.clock = Clock()
         self.label = topleft_label()
+        self.score_label = topright_label()
+        self.score = 0
         self.add_widget(self.label)
+        self.add_widget(self.score_label)
         self.ac = AudioController("sound_of_silence")
         self.trackdata = TrackData("melody_data.txt")
         self.trackdata2 = TrackData("harmony_data.txt")
@@ -286,17 +273,14 @@ class MainWidget(BaseWidget) :
         self.add_widget(self.ps)
         self.td = TracksDisplay([self.trackdata, self.trackdata2], self.clock, self.ps)
         self.canvas.add(self.td)
+        
 
         self.harmony_detect = HarmonyDetector('minor', 63)
         self.pitch = 63
         self.melody_pitch = 63
-        self.checkpoint_times = []
         self.index = 0
 
-        # self.checkpoint_times = [(0,0), (37.688368082, 1658880), (72.2194881439, 3181568), (107.088101149, 4719616), (141.582692146, 6240256)]
         self.checkpoint_times = checkpoint_times
-        #(107.076322079, 4720128)
-        # (106.991501093, 4715008)
 
     def on_key_down(self, keycode, modifiers):
         # play / pause toggle
@@ -357,12 +341,12 @@ class MainWidget(BaseWidget) :
                 self.ps.stop()
             else:
                 self.ps.start()
+                self.score += 10
         self.td.on_update()
         self.label.text = "Melody: " + str(not self.ac.melody_mute) + "\n"
         self.label.text += "Harmony: " + str(not self.ac.harmony_mute) + "\n"
         self.label.text += "Pitch: " + str(self.pitch)
-        # print "frame: ", self.ac.melody_track.frame
-
+        self.score_label.text = "Score: " + str(self.score)
     def get_melody_pitch(self):
         time = self.clock.get_time()
         notes = self.trackdata.get_notes_in_range(time, time+0.1)
