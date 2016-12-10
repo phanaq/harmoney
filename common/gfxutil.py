@@ -154,6 +154,7 @@ class TrackPointer(InstructionGroup):
 
     def on_update(self, dt):
         self.ypos = self.ypos_anim.eval(self.time)
+        self.ps.emitter_y = 150 - self.pointer_width
         self.ps.emitter_y = self.ypos
         self._set_points()
         self.time += dt
@@ -184,6 +185,37 @@ class CEllipse(Ellipse):
         cpos = self.get_cpos()
         self.size = p
         self.set_cpos(cpos)
+
+    cpos = property(get_cpos, set_cpos)
+    csize = property(get_csize, set_csize)
+
+class ClickTangle(Rectangle):
+    def __init__(self, **kwargs):
+        super(ClickTangle, self).__init__(**kwargs)
+        if kwargs.has_key('cpos'):
+            self.cpos = kwargs['cpos']
+
+        if kwargs.has_key('csize'):
+            self.csize = kwargs['csize']
+
+    def get_cpos(self):
+        return (self.pos[0] + self.size[0]/2, self.pos[1] + self.size[1]/2)
+
+    def set_cpos(self, p):
+        self.pos = (p[0] - self.size[0]/2 , p[1] - self.size[1]/2)
+
+    def get_csize(self) :
+        return self.size
+
+    def set_csize(self, p) :
+        cpos = self.get_cpos()
+        self.size = p
+        self.set_cpos(cpos)
+
+    def within_bounds(self, p):
+        within_x = self.pos[0] < p[0] < self.pos[0] + self.size[0]
+        within_y = self.pos[1] < p[1] < self.pos[1] + self.size[1]
+        return within_x and within_y
 
     cpos = property(get_cpos, set_cpos)
     csize = property(get_csize, set_csize)
