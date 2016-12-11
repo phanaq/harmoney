@@ -14,6 +14,7 @@ from kivy.graphics.instructions import InstructionGroup
 from kivy.graphics import Rectangle, Ellipse, Color, Fbo, ClearBuffers, ClearColor, Line, Triangle
 from kivy.graphics import PushMatrix, PopMatrix, Scale, Callback, Rotate
 from kivy.graphics.texture import Texture
+from kivy.uix.image import Image
 from kivy.uix.label import Label
 from kivy.core.window import Window
 
@@ -162,6 +163,73 @@ class TrackPointer(InstructionGroup):
         self.ps.emitter_y = 150 - self.pointer_width
         self.ps.emitter_y = self.ypos
         self._set_points()
+        self.time += dt
+
+
+class CatPointer(InstructionGroup):
+    def __init__(self, nowbar_offset, floorY, ceilingY, ps):
+        super(CatPointer, self).__init__()
+
+        self.floorY = floorY
+        self.ceilingY = ceilingY
+
+        self.add(PushMatrix())
+
+        # rotation and animation
+        self.rotate = Rotate()
+        self.add(self.rotate)
+        self.rotate_anim = KFAnim((0,0))
+
+        self.color = Color(1,1,1,1)
+        self.add(self.color)
+
+        # add nyan cat
+        self.cat_width = 60
+        self.cat_height = 45
+        self.xpos = nowbar_offset - self.cat_width
+        self.ypos = np.interp(60, [58,77], [floorY, ceilingY])
+        texture = Image(source='nyancat.png').texture
+        self.nyancat = Rectangle(texture=texture, pos=(150-self.cat_width, self.ypos-self.cat_height/2.),size=(self.cat_width,self.cat_height))
+        self.add(self.nyancat)
+
+        # add particle system
+        self.ps = ps
+        self.ps.emitter_x = self.xpos
+        self.ps.emitter_y = self.ypos
+        self.ps.start()
+
+        # cat position animation
+        self.ypos_anim = KFAnim((0,0))
+        self.time = 0
+
+        self.add(PopMatrix())
+
+    def _set_points(self):
+        xpos = 150 - self.cat_width
+        ypos = self.ypos - self.cat_height/2.
+        self.nyancat.pos = (xpos, ypos)
+
+    def set_pitch(self, pitch):
+        pitch = pitch
+        self.time = 0
+        old_pos = self.ypos
+        self.ypos = np.interp(pitch, [58,77], [self.floorY, self.ceilingY])
+        self.ypos_anim = KFAnim((0, old_pos), (.15, self.ypos))
+
+    def change_pointer_angle(self, note_diff):
+        old_angle = self.rotate.angle
+        new_angle = np.interp(note_diff, [-5,5], [-20,20])
+        self.rotate_anim = KFAnim((0, old_angle), (.15, new_angle))
+
+    def on_update(self, dt):
+        self.ypos = self.ypos_anim.eval(self.time)
+        self.ps.emitter_y = 150 - self.cat_width
+        self.ps.emitter_y = self.ypos
+        self._set_points()
+
+        self.rotate.origin = (self.xpos+(self.cat_width/2.), self.ypos)
+        self.rotate.angle = self.rotate_anim.eval(self.time)
+        
         self.time += dt
 
 

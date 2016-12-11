@@ -96,7 +96,7 @@ class PointerDisplay(InstructionGroup):
         super(PointerDisplay, self).__init__()
         self.anim_group = AnimGroup()
         self.add(self.anim_group)
-        self.pointer = TrackPointer(nowbar_offset, h/4., 3*h/4., ps)
+        self.pointer = CatPointer(nowbar_offset, h/4., 3*h/4., ps)
         self.anim_group.add(self.pointer)
         self.pitch = 60
 
@@ -165,20 +165,41 @@ class AudioController(object):
         self.melody_mute = False
         self.harmony_mute = False
 
+        self.setUp()
+
+    def setUp(self):
+        # # microphone input
+        # self.pitch = 0
+        # self.input_buffers = []
+        # self.downsample = 1
+        # self.samplerate = 44100 // self.downsample
+        # if len( sys.argv ) > 2: self.samplerate = int(sys.argv[2])
+        # self.win_s = 4096 // self.downsample # fft size
+        # self.hop_s = 512  // self.downsample # hop size
+        # self.tolerance = 0.8
+        # self.pitch_o = pitch("yin", self.win_s, self.hop_s, self.samplerate)
+        # self.pitch_o.set_unit("midi")
+        # self.pitch_o.set_tolerance(self.tolerance)
+
+        # test file input
         self.pitch = 0
-        self.input_buffers = []
+        self.filename = 'major_scale.wav'
+        self.mixer.add(WaveGenerator(WaveFile(self.filename), loop=True))
         self.downsample = 1
         self.samplerate = 44100 // self.downsample
-        if len( sys.argv ) > 2: self.samplerate = int(sys.argv[2])
         self.win_s = 4096 // self.downsample # fft size
         self.hop_s = 512  // self.downsample # hop size
+
+        self.s = source(self.filename, self.samplerate, self.hop_s)
+        self.samplerate = self.s.samplerate
         self.tolerance = 0.8
         self.pitch_o = pitch("yin", self.win_s, self.hop_s, self.samplerate)
         self.pitch_o.set_unit("midi")
         self.pitch_o.set_tolerance(self.tolerance)
 
     def receive_audio(self, frames, num_channels):
-        self.input_buffers.append(frames)
+        pass
+        # self.input_buffers.append(frames)
 
     def _process_input(self):
         pass
@@ -216,15 +237,22 @@ class AudioController(object):
             self.harmony_track.set_gain(0)
         self.harmony_mute = not self.harmony_mute
 
-    # needed to update audio
     def on_update(self):
         self.audio.on_update()
 
-        if len(self.input_buffers) > 0:
-            pitch = self.pitch_o(self.input_buffers.pop(0)[:512])[0]
-            pitch = int(round(pitch))
-            if pitch != self.pitch:
-                self.pitch = pitch
+        # # microphone input
+        # if len(self.input_buffers) > 0:
+        #     pitch = self.pitch_o(self.input_buffers.pop(0)[:512])[0]
+        #     pitch = int(round(pitch))
+        #     if pitch != self.pitch:
+        #         self.pitch = pitch
+
+        # test file input
+        samples, read = self.s()
+        pitch = self.pitch_o(samples)[0]
+        pitch = int(round(pitch))
+        if pitch != self.pitch and pitch != 0:
+            self.pitch = pitch
 
 
 class HomeDisplay(InstructionGroup):
@@ -335,7 +363,6 @@ class MainWidget2(BaseWidget) :
 
         # label
         self.label = topleft_label()
-        # self.add_widget(self.label)
 
         # player
         self.player = HarmoneyPlayer(self.ps, self.display, self.audio, self.label)
