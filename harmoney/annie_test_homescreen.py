@@ -335,7 +335,7 @@ class MainWidget2(BaseWidget) :
 
         # label
         self.label = topleft_label()
-        self.add_widget(self.label)
+        # self.add_widget(self.label)
 
         # player
         self.player = HarmoneyPlayer(self.ps, self.display, self.audio, self.label)
@@ -367,7 +367,6 @@ class HarmoneyPlayer(InstructionGroup):
 
     def on_touch_down(self, touch):
         switch = self.display.click(touch)
-        # print 'switch:', switch
 
     def on_key_down(self, keycode, modifiers):
         if keycode[1] == 'p':
@@ -407,7 +406,6 @@ class HarmoneyPlayer(InstructionGroup):
 
     def on_update(self):
         if self.display.which_display == self.display.game_display:
-            
             self.update_game_display()
         else:
             self.update_home_display()

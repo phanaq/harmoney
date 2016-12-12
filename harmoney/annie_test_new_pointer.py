@@ -19,7 +19,7 @@ from kivy.graphics import Color, Ellipse, Line, Rectangle
 from kivy.graphics import PushMatrix, PopMatrix, Translate, Scale, Rotate
 from kivy.graphics.instructions import InstructionGroup
 from kivy.clock import Clock as kivyClock
-from kivy.core.image import Image
+from kivy.uix.image import *
 
 from harmony_detect import *
 
@@ -96,42 +96,12 @@ class PointerDisplay(InstructionGroup):
         super(PointerDisplay, self).__init__()
         self.anim_group = AnimGroup()
         self.add(self.anim_group)
-        self.pointer = TrackPointer(nowbar_offset, h/4., 3*h/4., ps)
+        self.pointer = CatPointer(nowbar_offset, h/4., 3*h/4., ps)
         self.anim_group.add(self.pointer)
         self.pitch = 60
 
     def on_update(self):
         self.anim_group.on_update()
-
-class CheckpointDisplay(InstructionGroup):
-    def __init__(self, center_x, y, length):
-        super(CheckpointDisplay, self).__init__()
-        self.length = length
-        self.y = y
-        self.start_x = center_x - self.length/2.0
-        self.end_x = center_x + self.length/2.0
-        self.cp_bar = Line(points=[self.start_x, self.y, self.end_x, self.y])
-        self.add(self.cp_bar)
-        self.cur_rel_pos = 0 #fraction of song played
-        self.total_song_length = 186.0
-        self.add(Color(0, 0, 1))
-        for (time, frame) in checkpoint_times:
-            cp = CEllipse(cpos = (time/self.total_song_length * self.length + self.start_x, self.y), size=(10, 10))
-            self.add(cp)
-            
-
-        self.add(Color(1, 1, 1))
-        star = Rectangle(pos = (self.length + self.start_x - 10, self.y - 10), size=(20, 20), texture=Image("star.png").texture)
-        self.add(star)
-        self.pos_disp = CEllipse(cpos = (self.cur_rel_pos * self.length + self.start_x, self.y), size=(10, 10))
-        
-        self.add(self.pos_disp)
-    
-    def on_update(self, now_time):
-        if now_time > self.total_song_length:
-            now_time = self.total_song_length
-        self.cur_rel_pos = now_time/self.total_song_length
-        self.pos_disp.cpos = (self.cur_rel_pos * self.length + self.start_x, self.y)
 
 
 class TracksDisplay(InstructionGroup):
@@ -140,16 +110,12 @@ class TracksDisplay(InstructionGroup):
         self.clock = clock
         self.song_data_lists = song_data_lists
         self.notes_on_screen = {}
-        self.total_song_length = 186.0
 
         self.remove_list = []
         self.nowbar_offset = 150
         self.nowbar = Line(points=[self.nowbar_offset, 0, self.nowbar_offset, h], dash_offset=10)
         self.add(Color(rgb=(1, 1, 1)))
         self.add(self.nowbar)
-
-        self.cp_display = CheckpointDisplay(w/2., h - 50, 3*w/5)
-        self.add(self.cp_display)
 
         self.pd = PointerDisplay(self.nowbar_offset, ps)
         self.add(self.pd)
@@ -159,14 +125,13 @@ class TracksDisplay(InstructionGroup):
 
     def on_update(self) :
         self.pd.on_update()
-        self.cp_display.on_update(self.clock.get_time())
+
         for trackIndex in range(len(self.song_data_lists)):
             track = self.song_data_lists[trackIndex]
             colorRGB = rainbowRGB[trackIndex]
             for (note_time, note_pitch, note_dur) in track.get_notes_in_range(self.clock.get_time(), self.clock.get_time() + 4):
-
                 if note_time not in self.notes_on_screen:
-                    # print "note time: ", note_time
+
                     notedisp = NoteBlock(note_pitch, note_dur, h/4., 3*h/4., Color(rgb=colorRGB), note_time*200 + self.nowbar_offset)
                     self.notes_on_screen[note_time] = notedisp
                     self.add(notedisp)
@@ -184,8 +149,6 @@ class TracksDisplay(InstructionGroup):
             del self.notes_on_screen[note_time]
         self.trans.x = -self.clock.get_time() * 200
 
-
-
 class AudioController(object):
     def __init__(self, song_path):
         super(AudioController, self).__init__()
@@ -202,23 +165,54 @@ class AudioController(object):
         self.melody_mute = False
         self.harmony_mute = False
 
+        self.setUp()
+
+    def setUp(self):
+        # # microphone input
+        # self.pitch = 0
+        # self.input_buffers = []
+        # self.downsample = 1
+        # self.samplerate = 44100 // self.downsample
+        # if len( sys.argv ) > 2: self.samplerate = int(sys.argv[2])
+        # self.win_s = 4096 // self.downsample # fft size
+        # self.hop_s = 512  // self.downsample # hop size
+        # self.tolerance = 0.8
+        # self.pitch_o = pitch("yin", self.win_s, self.hop_s, self.samplerate)
+        # self.pitch_o.set_unit("midi")
+        # self.pitch_o.set_tolerance(self.tolerance)
+
+        # test file input
         self.pitch = 0
-        self.input_buffers = []
+        self.filename = 'major_scale.wav'
+        self.mixer.add(WaveGenerator(WaveFile(self.filename), loop=True))
         self.downsample = 1
         self.samplerate = 44100 // self.downsample
-        if len( sys.argv ) > 2: self.samplerate = int(sys.argv[2])
         self.win_s = 4096 // self.downsample # fft size
         self.hop_s = 512  // self.downsample # hop size
+
+        self.s = source(self.filename, self.samplerate, self.hop_s)
+        self.samplerate = self.s.samplerate
         self.tolerance = 0.8
         self.pitch_o = pitch("yin", self.win_s, self.hop_s, self.samplerate)
         self.pitch_o.set_unit("midi")
         self.pitch_o.set_tolerance(self.tolerance)
 
     def receive_audio(self, frames, num_channels):
-        self.input_buffers.append(frames)
+        pass
+        # self.input_buffers.append(frames)
 
     def _process_input(self):
         pass
+
+    def press_key(self, key):
+        if key == 'p':
+            self.toggle()
+
+        if key == 'm':
+            self.toggle_melody()
+
+        if key == 'h':
+            self.toggle_harmony()
 
     # start / stop the song
     def toggle(self):
@@ -234,7 +228,6 @@ class AudioController(object):
             self.melody_track.set_gain(0)
         self.melody_mute = not self.melody_mute
 
-
     def toggle_harmony(self):
         if self.harmony_mute:
             #unmute
@@ -244,115 +237,205 @@ class AudioController(object):
             self.harmony_track.set_gain(0)
         self.harmony_mute = not self.harmony_mute
 
-    # needed to update audio
     def on_update(self):
         self.audio.on_update()
 
-        if len(self.input_buffers) > 0:
-            pitch = self.pitch_o(self.input_buffers.pop(0)[:512])[0]
-            pitch = int(round(pitch))
-            if pitch != self.pitch:
-                self.pitch = pitch
+        # # microphone input
+        # if len(self.input_buffers) > 0:
+        #     pitch = self.pitch_o(self.input_buffers.pop(0)[:512])[0]
+        #     pitch = int(round(pitch))
+        #     if pitch != self.pitch:
+        #         self.pitch = pitch
+
+        # test file input
+        samples, read = self.s()
+        pitch = self.pitch_o(samples)[0]
+        pitch = int(round(pitch))
+        if pitch != self.pitch and pitch != 0:
+            self.pitch = pitch
 
 
-checkpoint_times = [(0,0), (37.5921020508, 1655296), (72.140171051, 3179008), (106.991501093, 4715008), (141.582692146, 6240256)]
-
-class MainWidget(BaseWidget) :
-    def __init__(self):
-        super(MainWidget, self).__init__()
+class HomeDisplay(InstructionGroup):
+    def __init__(self, trackdata):
+        super(HomeDisplay, self).__init__()
         self.clock = Clock()
-        self.label = topleft_label()
-        self.score_label = topright_label()
-        self.score = 0
-        self.add_widget(self.label)
-        self.add_widget(self.score_label)
-        self.ac = AudioController("sound_of_silence")
-        self.trackdata = TrackData("melody_data.txt")
-        self.trackdata2 = TrackData("harmony_data.txt")
-        self.ps = ParticleSystem('../common/particle/particle.pex')     
-        self.add_widget(self.ps)
-        self.td = TracksDisplay([self.trackdata, self.trackdata2], self.clock, self.ps)
-        self.canvas.add(self.td)
+        self.trackdata = trackdata
+        self.setUp()
+
+    def setUp(self):
+        self.add(Color(1,1,1))
+        texture = Image(source='title.png').texture
+        self.add(Rectangle(texture=texture, pos=((w/2.)-250,(h/2.)),size=(500,200)))
+
+        self.add(Color(1,1,1,.5))
+        self.button = ClickTangle(cpos=(w/2.,200), csize=(400,100))
+        self.add(self.button)
+
+        self.add(Color(0,0,0))
+        self.middle = Rectangle(pos=((w/2.)-190,160), size=(380,80))
+        self.add(self.middle)
+
+        self.add(Color(1,1,1,.5))
+        texture = Image(source='button_text.png').texture
+        self.add(Rectangle(texture=texture, pos=((w/2.)-120,165), size=(240,70)))
+
+    def click(self, pos):
+        return self.button.within_bounds(pos)
+
+    def on_update(self, dt):
+        pass
+
+class GameDisplay(InstructionGroup):
+    def __init__(self, trackdata, ps):
+        super(GameDisplay, self).__init__()
+        self.clock = Clock()
+        self.clock.stop()
+        self.trackdata = trackdata
+        self.ps = ps
+
+        self.add(Color(1, 1, 1, .5))
+        self.rectangle = ClickTangle(pos=(10,10), size=(50,30))
+        self.add(self.rectangle)
+
+        self.td = TracksDisplay(self.trackdata, self.clock, self.ps)
+        self.add(self.td)
+
+    def click(self, pos):
+        return self.rectangle.within_bounds(pos)
+
+    def on_update(self):
+        self.td.on_update()
+
+class Display(InstructionGroup):
+    def __init__(self, trackdata, ps):
+        super(Display, self).__init__()
+        self.trackdata = trackdata
+        self.ps = ps
+
+        self.home_display = HomeDisplay(self.trackdata)
+        self.game_display = GameDisplay(self.trackdata, self.ps)
+        self.which_display = self.home_display
+        self.add(self.home_display)
+
+    def click(self, touch):
+        click = self.which_display.click(touch.pos)
+        if click:
+            self.toggle()
+            return True
+
+    def toggle(self):
+        if self.which_display == self.home_display:
+            next_display = self.game_display
+            self.ps.emitter_x = 120
+            self.game_display.clock.start()
+            self.home_display.clock.stop()
+        elif self.which_display == self.game_display:
+            next_display = self.home_display
+            self.ps.start()
+            self.game_display.clock.stop()
+            self.home_display.clock.start()
+        self.clear()
+        self.add(next_display)   
+        self.which_display = next_display   
+
+    def on_update(self, dt):
+        pass
+
+class MainWidget2(BaseWidget) :
+    def __init__(self):
+        super(MainWidget2, self).__init__()
+
+        # track data
+        self.trackdata = [TrackData("melody_data.txt"), TrackData("harmony_data.txt")]
         
+        # particle system
+        self.ps = ParticleSystem('../common/particle/particle.pex')
+        self.add_widget(self.ps)
 
-        self.harmony_detect = HarmonyDetector('minor', 63)
-        self.pitch = 63
-        self.melody_pitch = 63
-        self.index = 0
+        # display
+        self.anim_group = AnimGroup()
+        self.display = Display(self.trackdata, self.ps)
+        self.anim_group.add(self.display)
+        self.canvas.add(self.anim_group)
 
-        self.checkpoint_times = checkpoint_times
+        # audio
+        self.audio = AudioController("sound_of_silence")
+
+        # label
+        self.label = topleft_label()
+
+        # player
+        self.player = HarmoneyPlayer(self.ps, self.display, self.audio, self.label)
+
+    def on_touch_down(self, touch):
+        self.player.on_touch_down(touch)
+        
+    def on_key_down(self, keycode, modifiers):
+        self.player.on_key_down(keycode, modifiers)
+
+    def on_update(self):
+        self.anim_group.on_update()
+        self.player.on_update()
+
+class HarmoneyPlayer(InstructionGroup):
+    def __init__(self, ps, display, audio, label):
+        super(HarmoneyPlayer, self).__init__()
+        self.ps = ps
+        self.display = display
+        self.audio = audio
+        self.label = label
+
+        self.detector = HarmonyDetector('minor', 63)
+        self.pitch = self.detector.tonic
+        self.melody_pitch = self.detector.tonic
+
+        self.clock = self.display.which_display.clock
+        self.pointer = self.display.game_display.td.pd.pointer
+
+    def on_touch_down(self, touch):
+        switch = self.display.click(touch)
 
     def on_key_down(self, keycode, modifiers):
-        # play / pause toggle
         if keycode[1] == 'p':
-            self.ac.toggle()
             self.clock.toggle()
 
-        if keycode[1] == 'm':
-            self.ac.toggle_melody()
+        self.audio.press_key(keycode[1])
 
-        if keycode[1] == 'h':
-            self.ac.toggle_harmony()
-
-        if keycode[1] == 'left':
-            if self.index > 0:
-                self.index -= 1
-            else:
-                self.index = 0
-            self.clock.set_time(self.checkpoint_times[self.index][0])
-            self.ac.melody_track.frame = self.checkpoint_times[self.index][1]
-            self.ac.harmony_track.frame = self.checkpoint_times[self.index][1]
-
-        if keycode[1] == 'right':
-            if self.index < 4:
-                self.index += 1
-            self.clock.set_time(self.checkpoint_times[self.index][0])
-            self.ac.melody_track.frame = self.checkpoint_times[self.index][1]
-            self.ac.harmony_track.frame = self.checkpoint_times[self.index][1]
-
-
-        if keycode[1] == '0':
-            # print "updating frame"
-            print "time is: ", self.clock.get_time()
-            print "frame is: ", self.ac.melody_track.frame
-
-        button_idx = lookup(keycode[1], '12345', (0,1,2,3,4))
-        if button_idx != None:
-            self.index = button_idx
-            self.clock.set_time(self.checkpoint_times[self.index][0])
-            self.ac.melody_track.frame = self.checkpoint_times[self.index][1]
-            self.ac.harmony_track.frame = self.checkpoint_times[self.index][1]
-
-    def on_update(self) :
-        self.ac.on_update()
-        self.get_melody_pitch()
-        if self.ac.pitch != self.pitch:
-            self.pitch = self.ac.pitch
-            if self.pitch != 0:
-                self.td.pd.pointer.set_pitch(self.pitch)
-                diff, harmony_is_valid = self.harmony_detect.check_harmony(self.melody_pitch, self.pitch)
-                # print diff
-                # print harmony_is_valid
-                self.td.pd.pointer.change_pointer_angle(diff)
-            else:
-                harmony_is_valid = False
-                self.td.pd.pointer.change_pointer_angle(0)
-            if not harmony_is_valid:
-                self.ps.stop()
-            else:
-                self.ps.start()
-                self.score += 10
-        self.td.on_update()
-        self.label.text = "Melody: " + str(not self.ac.melody_mute) + "\n"
-        self.label.text += "Harmony: " + str(not self.ac.harmony_mute) + "\n"
-        self.label.text += "Pitch: " + str(self.pitch)
-        self.score_label.text = "Score: " + str(self.score)
     def get_melody_pitch(self):
         time = self.clock.get_time()
-        notes = self.trackdata.get_notes_in_range(time, time+0.1)
+        notes = self.display.trackdata[0].get_notes_in_range(time, time+0.1)
         if notes:
             melody_pitch = notes[0][1]
             self.melody_pitch = melody_pitch
 
-run(MainWidget)
+    def update_game_display(self):
+        self.audio.on_update()
+        self.get_melody_pitch()
+        if self.audio.pitch != self.pitch:
+            self.pitch = self.audio.pitch
+            if self.pitch != 0:
+                self.pointer.set_pitch(self.pitch)
+                diff, harmony_is_valid = self.detector.check_harmony(self.melody_pitch, self.pitch)
+                self.pointer.change_pointer_angle(diff)
+            else:
+                harmony_is_valid = False
+                self.pointer.change_pointer_angle(0)
+            if not harmony_is_valid:
+                self.ps.stop()
+            else:
+                self.ps.start()
+        self.display.game_display.on_update()
 
+    def update_home_display(self):
+        xpos, ypos = Window.mouse_pos
+        self.ps.emitter_x = xpos
+        self.ps.emitter_y = ypos
+
+    def on_update(self):
+        if self.display.which_display == self.display.game_display:
+            self.update_game_display()
+        else:
+            self.update_home_display()
+            
+
+run(MainWidget2)
