@@ -32,9 +32,10 @@ rainbowRGB = [(1, 1, 1), (1, .4, 1), (1, 0, 0), (1, .4, 0), (1, 1, 0), (.4, 1, .
 class NoteBlock(InstructionGroup):
     def __init__(self, pitch, duration, floorY, ceilingY, color, xpos, height, mel, harm):
         super(NoteBlock, self).__init__()
-        x = xpos
-        y = np.interp(pitch, [50, 86], [floorY, ceilingY])
+        self.x = xpos
+        self.y = np.interp(pitch, [50, 86], [floorY, ceilingY])
 
+        self.pitch = pitch
         self.color = color
         self.on_color = color.rgb
         self.off_color = (.3, .3, .3)
@@ -42,23 +43,25 @@ class NoteBlock(InstructionGroup):
 
         self.mel = mel
         self.harm = harm
-        
-        self.rect = Rectangle(size = (float(duration) * 200, height), pos=(x,y-height/2.))
+        self.highlighted = False
+
+        self.rect = Rectangle(size = (float(duration) * 200, height), pos=(self.x,self.y-height/2.))
 
         self.add(self.color)
         self.add(self.rect)
 
     def fade_out(self):
-        self.color.rgb = self.off_color
+        if not self.highlighted:
+            self.color.rgb = self.off_color
 
     def fade_in(self):
-        self.color.rgb = self.on_color
+        if not self.highlighted:
+            self.color.rgb = self.on_color
 
     def highlight(self):
-        self.color.a = 1
-
-    def lowlight(self):
-        self.color.a = .5
+        print "HIGHLIGHTING"
+        self.color.rgb = (.4, .8, .9)
+        self.highlighted = True
 
     def on_update(self):
         pass
@@ -148,6 +151,7 @@ class PointerDisplay(InstructionGroup):
 
     def on_update(self):
         self.anim_group.on_update()
+        return self.pointer.ypos
 
 
 class TracksDisplay(InstructionGroup):
@@ -173,14 +177,12 @@ class TracksDisplay(InstructionGroup):
         self.trans = Translate()
         self.add(self.trans)
 
-    def on_update(self, melody_is_playing, harmony_is_playing):
-        self.pd.on_update()
+    def on_update(self, melody_is_playing, harmony_is_playing, pitch, valid):
+        pointer_ypos = self.pd.on_update()
 
         for trackIndex in range(len(self.song_data_lists)):
             track = self.song_data_lists[trackIndex]
             colorRGB = rainbowRGB[trackIndex]
-            test = track.get_notes_in_range(self.clock.get_time(), self.clock.get_time() + 4)
-            # print test
             for (note_time, note_pitch, note_dur, words) in track.get_notes_in_range(self.clock.get_time(), self.clock.get_time() + 4):
                 if note_time not in self.notes_on_screen:
 
@@ -209,6 +211,31 @@ class TracksDisplay(InstructionGroup):
                     note.fade_in()
                 else:
                     note.fade_out()
+
+
+        # if the harmony is valid, highlight something close in pitch
+        # if valid:
+        #     note_options = []
+        #     for note_time in self.notes_on_screen:
+        #         note = self.notes_on_screen[note_time]
+        #         if abs(self.nowbar_offset - (note.x - self.clock.get_time()*200)) < 20:
+        #             note = self.notes_on_screen[note_time]
+        #             note_options.append(note)
+        #     note_options = sorted(note_options, key=lambda x: abs(pitch - x.pitch))
+        #     if len(note_options) > 0:
+        #         note_options[0].highlight()
+
+        # if the harmony is valid, highlight something close to the pointer
+        if valid:
+            note_options = []
+            for note_time in self.notes_on_screen:
+                note = self.notes_on_screen[note_time]
+                if abs(self.nowbar_offset - (note.x - self.clock.get_time()*200)) < 5:
+                    note = self.notes_on_screen[note_time]
+                    note_options.append(note)
+            note_options = sorted(note_options, key=lambda x: abs(pointer_ypos - note.y))
+            if len(note_options) > 0:
+                note_options[0].highlight()
 
         for note_time in self.notes_on_screen:
             if note_time not in self.remove_list and self.clock.get_time() - note_time > 3: #note is off the screen
@@ -370,8 +397,8 @@ class GameDisplay(InstructionGroup):
     def click(self, pos):
         return self.rectangle.within_bounds(pos)
 
-    def on_update(self, melody_is_playing, harmony_is_playing):
-        self.td.on_update(melody_is_playing, harmony_is_playing)
+    def on_update(self, melody_is_playing, harmony_is_playing, pitch, valid):
+        self.td.on_update(melody_is_playing, harmony_is_playing, pitch, valid)
 
 class Display(InstructionGroup):
     def __init__(self, trackdata, ps, lyrics):
@@ -516,6 +543,7 @@ class HarmoneyPlayer(InstructionGroup):
     def update_game_display(self):
         self.audio.on_update()
         self.get_melody_pitch()
+        harmony_is_valid = False
         if self.audio.pitch != self.pitch:
             self.pitch = self.audio.pitch
             if self.pitch != 0:
@@ -529,7 +557,7 @@ class HarmoneyPlayer(InstructionGroup):
                 self.ps.stop()
             else:
                 self.ps.start()
-        self.display.game_display.on_update(self.melody_playing, self.harmony_playing)
+        self.display.game_display.on_update(self.melody_playing, self.harmony_playing, self.pitch, harmony_is_valid)
 
     def update_home_display(self):
         xpos, ypos = Window.mouse_pos

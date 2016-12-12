@@ -205,7 +205,6 @@ class TracksDisplay(InstructionGroup):
         for trackIndex in range(len(self.song_data_lists)):
             track = self.song_data_lists[trackIndex]
             colorRGB = rainbowRGB[trackIndex]
-            test = track.get_notes_in_range(self.clock.get_time(), self.clock.get_time() + 4)
             for (note_time, note_pitch, note_dur, words) in track.get_notes_in_range(self.clock.get_time(), self.clock.get_time() + 4):
                 if note_time not in self.notes_on_screen:
 
@@ -261,7 +260,6 @@ class TracksDisplay(InstructionGroup):
 
         for note_time in self.notes_on_screen:
             if note_time not in self.remove_list and self.clock.get_time() - note_time > 3: #note is off the screen
-
                 self.remove_list.append(note_time)
 
         for note_time in self.remove_list:
@@ -297,7 +295,7 @@ class AudioController(object):
         self.win_s = 4096 // self.downsample # fft size
         self.hop_s = 512  // self.downsample # hop size
         self.tolerance = 0.8
-        self.pitch_o = pitch("yin", self.win_s, self.hop_s, self.samplerate)
+        self.pitch_o = pitch("yinfft", self.win_s, self.hop_s, self.samplerate)
         self.pitch_o.set_unit("midi")
         self.pitch_o.set_tolerance(self.tolerance)
 
