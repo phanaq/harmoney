@@ -223,7 +223,7 @@ class TracksDisplay(InstructionGroup):
     def on_update(self, melody_is_playing, harmony_is_playing, pitch, valid):
         pointer_ypos = self.pd.on_update()
 
-        self.lyrics.text = str(pitch)
+        # self.lyrics.text = str(pitch)
 
         for trackIndex in range(len(self.song_data_lists)):
             track = self.song_data_lists[trackIndex]
@@ -238,8 +238,8 @@ class TracksDisplay(InstructionGroup):
                     else:
                         notedisp = NoteBlock(note_pitch, note_dur, self.floorY, self.ceilingY, Color(rgb=(.3, .3, .3)), note_time*200 + self.nowbar_offset, 5, False, False)
 
-                    # if words:
-                        # self.lyrics.text = words
+                    if words:
+                        self.lyrics.text = words
                     self.notes_on_screen[note_time] = notedisp
                     self.add(notedisp)
 
