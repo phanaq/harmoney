@@ -31,7 +31,7 @@ rainbowRGB = [(1, 1, 1), (1, .4, 1), (1, .4, .4), (1, .6, .2), (.8, 1, .4), (.4,
 
 
 class NoteBlock(InstructionGroup):
-    def __init__(self, pitch, duration, floorY, ceilingY, color, xpos, height, mel, harm):
+    def __init__(self, pitch, duration, floorY, ceilingY, color, xpos, height, mel, harm, track):
         super(NoteBlock, self).__init__()
         self.x = xpos
         self.y = np.interp(pitch, [50, 86], [floorY, ceilingY])
@@ -45,6 +45,7 @@ class NoteBlock(InstructionGroup):
         self.mel = mel
         self.harm = harm
         self.highlighted = False
+        self.track = track
 
         self.rect = Rectangle(size = (float(duration) * 200, height), pos=(self.x,self.y-height/2.))
 
@@ -60,7 +61,6 @@ class NoteBlock(InstructionGroup):
             self.color.rgb = self.on_color
 
     def highlight(self):
-        print "HIGHLIGHTING"
         self.color.rgb = (.4, .8, .9)
         self.highlighted = True
 
@@ -220,7 +220,7 @@ class TracksDisplay(InstructionGroup):
         self.trans = Translate()
         self.add(self.trans)
 
-    def on_update(self, melody_is_playing, harmony_is_playing, pitch, valid):
+    def on_update(self, playing_tracks, selected_track, pitch, valid):
         pointer_ypos = self.pd.on_update()
 
         # self.lyrics.text = str(pitch)
@@ -232,11 +232,11 @@ class TracksDisplay(InstructionGroup):
                 if note_time not in self.notes_on_screen:
 
                     if trackIndex == 0:
-                        notedisp = NoteBlock(note_pitch, note_dur, self.floorY, self.ceilingY, Color(rgb=colorRGB), note_time*200 + self.nowbar_offset, 25, True, False)
+                        notedisp = NoteBlock(note_pitch, note_dur, self.floorY, self.ceilingY, Color(rgb=colorRGB), note_time*200 + self.nowbar_offset, 25, True, False, trackIndex)
                     elif trackIndex == 1:
-                        notedisp = NoteBlock(note_pitch, note_dur, self.floorY, self.ceilingY, Color(rgb=colorRGB), note_time*200 + self.nowbar_offset, 25, False, True)
+                        notedisp = NoteBlock(note_pitch, note_dur, self.floorY, self.ceilingY, Color(rgb=colorRGB), note_time*200 + self.nowbar_offset, 25, False, True, trackIndex)
                     else:
-                        notedisp = NoteBlock(note_pitch, note_dur, self.floorY, self.ceilingY, Color(rgb=(.3, .3, .3)), note_time*200 + self.nowbar_offset, 5, False, False)
+                        notedisp = NoteBlock(note_pitch, note_dur, self.floorY, self.ceilingY, Color(rgb=(.3, .3, .3)), note_time*200 + self.nowbar_offset, 5, False, False, trackIndex)
 
                     if words:
                         self.lyrics.text = words
@@ -247,17 +247,22 @@ class TracksDisplay(InstructionGroup):
         for note_time in self.notes_on_screen:
             note = self.notes_on_screen[note_time]
             if note.mel:
-                if melody_is_playing:
+                if playing_tracks[0]:
                     note.fade_in()
                 else:
                     note.fade_out()
             elif note.harm:
-                if harmony_is_playing:
+                if playing_tracks[1]:
                     note.fade_in()
                 else:
                     note.fade_out()
 
-
+        if pitch != 0:
+            for note_time in self.notes_on_screen:
+                note = self.notes_on_screen[note_time]
+                if abs(self.nowbar_offset - (note.x - self.clock.get_time()*200)) < 5:
+                    if note.track == selected_track:
+                        note.highlight()
         # # if the harmony is valid, highlight something close in pitch
         # if valid:
         #     note_options = []
@@ -271,16 +276,16 @@ class TracksDisplay(InstructionGroup):
         #         note_options[0].highlight()
 
         # if the harmony is valid, highlight something close to the pointer
-        if valid:
-            note_options = []
-            for note_time in self.notes_on_screen:
-                note = self.notes_on_screen[note_time]
-                if abs(self.nowbar_offset - (note.x - self.clock.get_time()*200)) < 5:
-                    note = self.notes_on_screen[note_time]
-                    note_options.append(note)
-            note_options = sorted(note_options, key=lambda x: abs(pointer_ypos - note.y))
-            if len(note_options) > 0:
-                note_options[0].highlight()
+        # if valid:
+        #     note_options = []
+        #     for note_time in self.notes_on_screen:
+        #         note = self.notes_on_screen[note_time]
+        #         if abs(self.nowbar_offset - (note.x - self.clock.get_time()*200)) < 5:
+        #             note = self.notes_on_screen[note_time]
+        #             note_options.append(note)
+        #     note_options = sorted(note_options, key=lambda x: abs(pointer_ypos - note.y))
+        #     if len(note_options) > 0:
+        #         note_options[0].highlight()
 
         for note_time in self.notes_on_screen:
             if note_time not in self.remove_list and self.clock.get_time() - note_time > 3: #note is off the screen
@@ -457,8 +462,8 @@ class GameDisplay(InstructionGroup):
     def click(self, pos):
         return self.rectangle.within_bounds(pos)
 
-    def on_update(self, melody_is_playing, harmony_is_playing, pitch, valid):
-        self.td.on_update(melody_is_playing, harmony_is_playing, pitch, valid)
+    def on_update(self, playing_tracks, selected_track, pitch, valid):
+        self.td.on_update(playing_tracks, selected_track, pitch, valid)
         self.cp_display.on_update()
 
 class Display(InstructionGroup):
@@ -584,8 +589,11 @@ class HarmoneyPlayer(InstructionGroup):
         self.clock = self.display.which_display.clock
         self.pointer = self.display.game_display.td.pd.pointer
 
-        self.melody_playing = True
-        self.harmony_playing = True
+        self.playing_tracks = [True, True, False, False, False, False]
+
+        self.selected_track = 0
+        self.track_pitch = self.detector.tonic
+        self.pointer.set_pitch(self.track_pitch)
 
     def on_touch_down(self, touch):
         switch = self.display.click(touch)
@@ -598,11 +606,11 @@ class HarmoneyPlayer(InstructionGroup):
 
         if keycode[1] == 'm':
         	self.audio.toggle_melody()
-        	self.melody_playing = not self.melody_playing
+        	self.playing_tracks[0] = not self.playing_tracks[0]
 
         if keycode[1] == 'h':
             self.audio.toggle_harmony()
-            self.harmony_playing = not self.harmony_playing
+            self.playing_tracks[1] = not self.playing_tracks[1] 
 
         if keycode[1] == 'left':
             if self.index > 0:
@@ -628,6 +636,14 @@ class HarmoneyPlayer(InstructionGroup):
             self.audio.melody_track.frame = self.checkpoint_times[self.index][1]
             self.audio.harmony_track.frame = self.checkpoint_times[self.index][1]
 
+        button_idx = lookup(keycode[1], 'qwert', (0,1,2,3,4))
+        if button_idx != None:
+            self.selected_track = button_idx
+
+        button_idx = lookup(keycode[1], 'asdfg', (0,1,2,3,4))
+        if button_idx != None:
+            self.playing_tracks[button_idx] = not self.playing_tracks[button_idx]
+
     def get_melody_pitch(self):
         time = self.clock.get_time()
         notes = self.display.trackdata[0].get_notes_in_range(time, time+0.1)
@@ -635,27 +651,41 @@ class HarmoneyPlayer(InstructionGroup):
             melody_pitch = notes[0][1]
             self.melody_pitch = melody_pitch
 
+    def get_track_pitch(self, index):
+        time = self.clock.get_time()
+        notes = self.display.trackdata[index].get_notes_in_range(time, time+0.1)
+        if notes:
+            pitch = notes[0][1]
+            self.track_pitch = pitch
+
     def update_game_display(self):
         self.audio.on_update()
         self.get_melody_pitch()
         harmony_is_valid = False
+        
+        old_pitch = self.track_pitch
+        self.get_track_pitch(self.selected_track)
+
+        if old_pitch != self.track_pitch:
+            self.pointer.set_pitch(self.track_pitch)
 
         pitch = self.audio.smoothed_pitch
         if pitch != self.display_pitch:
             self.display_pitch = pitch
             if self.display_pitch != 0:
-                self.pointer.set_pitch(self.display_pitch)
+                # self.pointer.set_pitch(pitch)
+                # self.pointer.set_pitch(self.track_pitch)
                 diff, harmony_is_valid = self.detector.check_harmony(self.melody_pitch, self.display_pitch)
-                self.pointer.change_pointer_angle(diff)
+                # self.pointer.change_pointer_angle(diff)
             else:
                 harmony_is_valid = False
-                self.pointer.change_pointer_angle(0)
+                # self.pointer.change_pointer_angle(0)
             if not harmony_is_valid:
                 self.ps.stop()
             else:
                 self.ps.start()
                 self.score += 10
-        self.display.game_display.on_update(self.melody_playing, self.harmony_playing, self.display_pitch, harmony_is_valid)
+        self.display.game_display.on_update(self.playing_tracks, self.selected_track, self.display_pitch, harmony_is_valid)
 
     def update_home_display(self):
         xpos, ypos = Window.mouse_pos

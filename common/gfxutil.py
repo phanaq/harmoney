@@ -144,7 +144,6 @@ class TrackPointer(InstructionGroup):
 
     def set_pitch(self, pitch):
         pitch = pitch + 24
-        # print pitch
         self.time = 0
         old_pos = self.ypos
         self.ypos = np.interp(pitch, [50,86], [self.floorY, self.ceilingY])
