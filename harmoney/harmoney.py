@@ -28,7 +28,7 @@ w = Window.width
 h = Window.height
 
 #colors for note blocks: red, orange, white, pink, yellow-green, light blue, light purple
-rainbowRGB = [(1, .4, .4), (1, .6, .2), (1, 1, 1), (1, .4, 1), (.8, 1, .4), (.4, .85, 1), (.8, .6, 1)]
+rainbowRGB = [(1, .4, .4), (1, .6, .2), (.4, .8, .9), (1, .4, 1), (.8, 1, .4), (.4, .85, 1), (.8, .6, 1)]
 cpRainbow = [(1, .4, .4), (1, .6, .2), (.8, 1, .4), (.4, .85, 1), (.8, .6, 1)]
 
 class NoteBlock(InstructionGroup):
@@ -62,14 +62,14 @@ class NoteBlock(InstructionGroup):
             self.color.rgb = self.on_color
 
     def highlight(self):
-        self.color.rgb = (.4, .8, .9)
+        self.color.rgb = (1, 0.843137, 0)
         self.highlighted = True
 
     def activate(self):
         self.color.a = 1
 
     def deactivate(self):
-        self.color.a = 0.3
+        self.color.a = 0.5
 
     def on_update(self):
         pass
@@ -272,6 +272,8 @@ class TracksDisplay(InstructionGroup):
             if playing_tracks[note.track]:
                 # print note.track
                 note.fade_in()
+            elif note.mel or note.harm:
+                note.deactivate()
             else:
                 note.fade_out()
 
@@ -554,8 +556,8 @@ class MainWidget(BaseWidget) :
             self.third_up,
             self.melody_track, 
             self.harmony_track,
+            self.fifth_down,
             self.third_down,
-            self.fifth_down
     	]
 
     	# add lyrics
@@ -590,17 +592,27 @@ class MainWidget(BaseWidget) :
         
     def on_key_down(self, keycode, modifiers):
         self.player.on_key_down(keycode, modifiers)
+        if keycode[1] == 'm':
+            self.player.playing_tracks[self.player.selected_track] = not self.player.playing_tracks[self.player.selected_track]
 
     def on_update(self):
         self.anim_group.on_update()
         self.player.on_update()
         now_time = self.display.game_display.clock.get_time()
-        for i in range(len(self.player.playing_tracks)):
-            if self.player.playing_tracks[i] and i != 2 and i != 3:
+        i = self.player.selected_track
+        if not self.player.explode:
+            if self.player.playing_tracks[i]:
                 for note in self.trackdata[i].get_notes_in_range(now_time, now_time + 2):
                     if abs(now_time - note[0]) < .025:
                         new_note = NoteGenerator(note[1], 0.5, note[2])
                         self.audio.mixer.add(new_note)
+        else:
+            for i in range(len(self.player.playing_tracks)):
+                if self.player.playing_tracks[i]:
+                    for note in self.trackdata[i].get_notes_in_range(now_time, now_time + 2):
+                        if abs(now_time - note[0]) < .025:
+                            new_note = NoteGenerator(note[1], 0.5, note[2])
+                            self.audio.mixer.add(new_note)
 
 class HarmoneyPlayer(InstructionGroup):
     def __init__(self, ps, display, audio):
@@ -622,15 +634,18 @@ class HarmoneyPlayer(InstructionGroup):
         self.clock = self.display.which_display.clock
         self.pointer = self.display.game_display.td.pd.pointer
 
-        self.playing_tracks = [False, False, True, True, False, False]
+        self.playing_tracks = [False, False, False, False, False, False]
 
-        self.selected_track = 0
+        self.selected_track = 2
         self.track_pitch = self.detector.tonic
         self.pointer.set_pitch(self.track_pitch)
 
         self.melody_playing = True
         self.harmony_playing = True
         self.harmony_is_valid = False
+
+        self.moved = False
+        self.explode = False
 
     def on_touch_down(self, touch):
         switch = self.display.click(touch)
@@ -659,11 +674,31 @@ class HarmoneyPlayer(InstructionGroup):
 
         if keycode[1] == 'up':
             if self.selected_track > 0:
+                old_playing = self.playing_tracks[self.selected_track]
+                self.playing_tracks[self.selected_track] = False
                 self.selected_track -= 1
+                self.playing_tracks[self.selected_track] = True and old_playing or not self.moved
+            self.moved = True
 
         if keycode[1] == 'down':
             if self.selected_track < 5:
+                old_playing = self.playing_tracks[self.selected_track]
+                self.playing_tracks[self.selected_track] = False
                 self.selected_track += 1
+                self.playing_tracks[self.selected_track] = True and old_playing or not self.moved
+            self.moved = True
+
+        if keycode[1] == 'spacebar':
+            self.explode = not self.explode
+            if self.explode:
+                print "self.explode"
+                for i in range(6):
+                    self.playing_tracks[i] = True
+            else:
+                for i in range(6):
+                    self.playing_tracks[i] = False
+            self.moved = True
+            
 
         button_idx = lookup(keycode[1], '12345', (0,1,2,3,4))
         if button_idx != None:
@@ -672,9 +707,9 @@ class HarmoneyPlayer(InstructionGroup):
             self.audio.melody_track.frame = self.checkpoint_times[self.index][1]
             self.audio.harmony_track.frame = self.checkpoint_times[self.index][1]
 
-        button_idx = lookup(keycode[1], 'asdfgh', (0,1,2,3,4,5))
-        if button_idx != None:
-            self.playing_tracks[button_idx] = not self.playing_tracks[button_idx]
+        # button_idx = lookup(keycode[1], 'asdfgh', (0,1,2,3,4,5))
+        # if button_idx != None:
+        #     self.playing_tracks[button_idx] = not self.playing_tracks[button_idx]
 
     def get_melody_pitch(self):
         time = self.clock.get_time()
