@@ -47,33 +47,44 @@ class NoteBlock(InstructionGroup): # modified from lab4
     def __init__(self, pitch, duration, floorY, ceilingY, color, xpos, height, mel, harm):
         super(NoteBlock, self).__init__()
 
-        x = xpos
-        y = np.interp(pitch, [50, 86], [floorY, ceilingY])
+        self.x = xpos
+        self.y = np.interp(pitch, [50, 86], [floorY, ceilingY])
 
+        self.pitch = pitch
         self.color = color
         self.on_color = color.rgb
         self.off_color = (.3, .3, .3)
         self.color.a = .5
         self.mel = mel
         self.harm = harm
+        self.highlighted = False
         
         #length of block is directly proportional to duration
-        self.rect = Rectangle(size = (float(duration) * 200, height), pos=(x,y-height/2.))
+        self.rect = Rectangle(size = (float(duration) * 200, height), pos=(self.x,self.y-height/2.))
 
         self.add(self.color)
         self.add(self.rect)
 
     def fade_out(self):
-        self.color.rgb = self.off_color
+        if not self.highlighted:
+            self.color.rgb = self.off_color
 
     def fade_in(self):
-        self.color.rgb = self.on_color
+        if not self.highlighted:
+            self.color.rgb = self.on_color
 
     def highlight(self):
-        self.color.a = 1
+        # if self.mel or self.harm:
+        #     self.color.a = 1
+        # else:
+        self.color.rgb = (0, 0, .8)
+        self.highlighted = True
 
     def lowlight(self):
-        self.color.a = .5
+        if self.mel or self.harm:
+            self.color.a = .5
+        else:
+            self.color.rgb = (.3, .3, .3)
 
     def on_update(self):
         pass
@@ -165,6 +176,7 @@ class PointerDisplay(InstructionGroup):
 
     def on_update(self):
         self.anim_group.on_update()
+        return self.pointer.ypos
 
 
 class TracksDisplay(InstructionGroup):
@@ -187,8 +199,8 @@ class TracksDisplay(InstructionGroup):
         self.trans = Translate()
         self.add(self.trans)
 
-    def on_update(self, mel, harm) :
-        self.pd.on_update()
+    def on_update(self, mel, harm, pitch, valid) :
+        pointer_ypos = self.pd.on_update()
 
         for trackIndex in range(len(self.song_data_lists)):
             track = self.song_data_lists[trackIndex]
@@ -222,6 +234,30 @@ class TracksDisplay(InstructionGroup):
                     note.fade_in()
                 else:
                     note.fade_out()
+
+        # if the harmony is valid, highlight something close in pitch
+        # if valid:
+        #     note_options = []
+        #     for note_time in self.notes_on_screen:
+        #         note = self.notes_on_screen[note_time]
+        #         if abs(self.nowbar_offset - (note.x - self.clock.get_time()*200)) < 20:
+        #             note = self.notes_on_screen[note_time]
+        #             note_options.append(note)
+        #     note_options = sorted(note_options, key=lambda x: abs(pitch - x.pitch))
+        #     if len(note_options) > 0:
+        #         note_options[0].highlight()
+
+        # if the harmony is valid, highlight something close to the pointer
+        if valid:
+            note_options = []
+            for note_time in self.notes_on_screen:
+                note = self.notes_on_screen[note_time]
+                if abs(self.nowbar_offset - (note.x - self.clock.get_time()*200)) < 5:
+                    note = self.notes_on_screen[note_time]
+                    note_options.append(note)
+            note_options = sorted(note_options, key=lambda x: abs(pointer_ypos - note.y))
+            if len(note_options) > 0:
+                note_options[0].highlight()
 
         for note_time in self.notes_on_screen:
             if note_time not in self.remove_list and self.clock.get_time() - note_time > 3: #note is off the screen
@@ -284,7 +320,6 @@ class AudioController(object):
             #mute
             self.melody_track.set_gain(0)
         self.melody_mute = not self.melody_mute
-
 
     def toggle_harmony(self):
         if self.harmony_mute:
@@ -369,13 +404,12 @@ class MainWidget(BaseWidget) :
 
         self.ac.on_update()
         self.get_melody_pitch()
+        harmony_is_valid = False
         if self.ac.pitch != self.pitch:
             self.pitch = self.ac.pitch
             if self.pitch != 0:
                 self.td.pd.pointer.set_pitch(self.pitch)
                 diff, harmony_is_valid = self.harmony_detect.check_harmony(self.melody_pitch, self.pitch)
-                # print diff
-                # print harmony_is_valid
                 self.td.pd.pointer.change_pointer_angle(diff)
             else:
                 harmony_is_valid = False
@@ -384,7 +418,7 @@ class MainWidget(BaseWidget) :
                 self.ps.stop()
             else:
                 self.ps.start()
-        self.td.on_update(self.melody_playing, self.harmony_playing)
+        self.td.on_update(self.melody_playing, self.harmony_playing, self.pitch, harmony_is_valid)
         self.label.text = "Melody: " + str(not self.ac.melody_mute) + "\n"
         self.label.text += "Harmony: " + str(not self.ac.harmony_mute) + "\n"
 
