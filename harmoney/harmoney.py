@@ -26,8 +26,8 @@ from kivy.uix.image import Image
 w = Window.width
 h = Window.height
 
-#colors for note blocks: white, pink, red, orange, yellow, green, light blue, dark blue, purple
-rainbowRGB = [(1, 1, 1), (1, .4, 1), (1, 0, 0), (1, .4, 0), (1, 1, 0), (.4, 1, .2), (0, 1, 1), (0, 0, 1), (.4, 0, .8)]
+#colors for note blocks: white, pink, red, orange, yellow-green, light blue, light purple
+rainbowRGB = [(1, 1, 1), (1, .4, 1), (1, .4, .4), (1, .6, .2), (.8, 1, .4), (.4, .85, 1), (.8, .6, 1)]
 
 
 class NoteBlock(InstructionGroup):
@@ -154,6 +154,45 @@ class PointerDisplay(InstructionGroup):
         self.anim_group.on_update()
         return self.pointer.ypos
 
+checkpoint_times = [(0,0), (37.5921020508, 1655296), (72.140171051, 3179008), (106.991501093, 4715008), (141.582692146, 6240256)]
+
+class CheckpointDisplay(InstructionGroup):
+    def __init__(self, center_x, y, length, checkpoints, clock):
+        super(CheckpointDisplay, self).__init__()
+        self.clock = clock
+        self.length = length
+        self.y = y
+        self.start_x = center_x - self.length/2.0
+        self.end_x = center_x + self.length/2.0
+        self.add(Color(1, 1, 1))
+        self.cp_bar = Line(points=[self.start_x, self.y, self.end_x, self.y])
+        self.add(self.cp_bar)
+        self.cur_rel_pos = 0 #fraction of song played
+        self.total_song_length = 186.0
+        self.checkpoint_times = checkpoints
+        self.colorIndex = 2
+        self.add(Color(0, 0, 1))
+        for (time, frame) in self.checkpoint_times:
+            cp = CEllipse(cpos = (time/self.total_song_length * self.length + self.start_x, self.y), size=(10, 10))
+            color = Color(rgb=rainbowRGB[self.colorIndex])
+            self.add(color)
+            self.add(cp)
+            self.colorIndex += 1
+
+        self.add(Color(1, 1, 1))
+        star_texture = Image(source='star.png').texture
+        star = Rectangle(texture=star_texture, pos = (self.length + self.start_x - 10, self.y - 10), size=(20, 20))
+        self.add(star)
+        self.pos_disp = CEllipse(cpos = (self.cur_rel_pos * self.length + self.start_x, self.y), size=(10, 10))
+        
+        self.add(self.pos_disp)
+    
+    def on_update(self):
+        now_time = self.clock.get_time()
+        if now_time > self.total_song_length:
+            now_time = self.total_song_length
+        self.cur_rel_pos = now_time/self.total_song_length
+        self.pos_disp.cpos = (self.cur_rel_pos * self.length + self.start_x, self.y)
 
 class TracksDisplay(InstructionGroup):
     def __init__(self, song_data_lists, clock, ps, lyrics, stars):
@@ -405,6 +444,9 @@ class GameDisplay(InstructionGroup):
         self.clock = Clock()
         self.clock.stop()
 
+        self.cp_display = CheckpointDisplay(w/2., h - 50, 3*w/5, checkpoint_times, self.clock)
+        self.add(self.cp_display)
+
         self.add(Color(1, 1, 1, .5))
         self.rectangle = ClickTangle(pos=(10,10), size=(50,30))
         self.add(self.rectangle)
@@ -417,6 +459,7 @@ class GameDisplay(InstructionGroup):
 
     def on_update(self, melody_is_playing, harmony_is_playing, pitch, valid):
         self.td.on_update(melody_is_playing, harmony_is_playing, pitch, valid)
+        self.cp_display.on_update()
 
 class Display(InstructionGroup):
     def __init__(self, trackdata, ps, lyrics):
@@ -494,6 +537,10 @@ class MainWidget(BaseWidget) :
         self.ps = ParticleSystem('../common/particle/particle.pex')
         self.add_widget(self.ps)
 
+        # score
+        self.score_label = topright_label()
+        self.add_widget(self.score_label)
+
         # display
         self.anim_group = AnimGroup()
         self.display = Display(trackdata, self.ps, self.lyrics)
@@ -504,7 +551,7 @@ class MainWidget(BaseWidget) :
 
         self.label = topleft_label()
 
-        self.player = HarmoneyPlayer(self.ps, self.display, self.audio, self.label)
+        self.player = HarmoneyPlayer(self.ps, self.display, self.audio)
 
     def on_touch_down(self, touch):
         self.player.on_touch_down(touch)
@@ -515,14 +562,17 @@ class MainWidget(BaseWidget) :
     def on_update(self):
         self.anim_group.on_update()
         self.player.on_update()
+        self.score_label.text = "Score: " + str(self.player.score)
 
 class HarmoneyPlayer(InstructionGroup):
-    def __init__(self, ps, display, audio, label):
+    def __init__(self, ps, display, audio):
         super(HarmoneyPlayer, self).__init__()
         self.ps = ps
         self.display = display
         self.audio = audio
-        self.label = label
+        self.score = 0
+        self.index = 0 #index of most recent checkpoint
+        self.checkpoint_times = display.game_display.cp_display.checkpoint_times
 
         self.detector = HarmonyDetector('minor', 63)
         self.display_pitch = self.detector.tonic
@@ -553,6 +603,30 @@ class HarmoneyPlayer(InstructionGroup):
         if keycode[1] == 'h':
             self.audio.toggle_harmony()
             self.harmony_playing = not self.harmony_playing
+
+        if keycode[1] == 'left':
+            if self.index > 0:
+                self.index -= 1
+            else:
+                self.index = 0
+            self.clock.set_time(self.checkpoint_times[self.index][0])
+            self.audio.melody_track.frame = self.checkpoint_times[self.index][1]
+            self.audio.harmony_track.frame = self.checkpoint_times[self.index][1]
+
+        if keycode[1] == 'right':
+            if self.index < 4:
+                self.index += 1
+            self.clock.set_time(self.checkpoint_times[self.index][0])
+            self.audio.melody_track.frame = self.checkpoint_times[self.index][1]
+            self.audio.harmony_track.frame = self.checkpoint_times[self.index][1]
+
+
+        button_idx = lookup(keycode[1], '12345', (0,1,2,3,4))
+        if button_idx != None:
+            self.index = button_idx
+            self.clock.set_time(self.checkpoint_times[self.index][0])
+            self.audio.melody_track.frame = self.checkpoint_times[self.index][1]
+            self.audio.harmony_track.frame = self.checkpoint_times[self.index][1]
 
     def get_melody_pitch(self):
         time = self.clock.get_time()
@@ -603,6 +677,7 @@ class HarmoneyPlayer(InstructionGroup):
                 self.ps.stop()
             else:
                 self.ps.start()
+                self.score += 10
         self.display.game_display.on_update(self.melody_playing, self.harmony_playing, self.display_pitch, harmony_is_valid)
 
     def update_home_display(self):
@@ -612,6 +687,8 @@ class HarmoneyPlayer(InstructionGroup):
 
     def on_update(self):
         if self.display.which_display == self.display.game_display:
+            if self.clock != self.display.game_display.clock:
+                self.clock = self.display.game_display.clock
             self.update_game_display()
         else:
             self.update_home_display()
