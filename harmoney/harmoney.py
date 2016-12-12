@@ -18,7 +18,7 @@ from random import randint
 
 from kivy.core.window import Window
 from kivy.graphics import Color, Ellipse, Line, Rectangle
-from kivy.graphics import PushMatrix, PopMatrix, Translate, Scale, Rotate
+from kivy.graphics import PushMatrix, PopMatrix, Translate, Rotate
 from kivy.graphics.instructions import InstructionGroup
 from kivy.clock import Clock as kivyClock
 from kivy.uix.image import Image
@@ -98,6 +98,7 @@ class Star(CEllipse):
 class TrackData(object):
     def __init__(self, solo_file, offset=0):  
         super(TrackData, self).__init__()
+        self.scale = Scale('minor', 63)
         self.offset = offset
         self.notes = []
         self.note_dict = {}
@@ -124,10 +125,22 @@ class TrackData(object):
                 # get start time of next note to calculate duration
                 next_line = lines[ind+1]
                 next_tokens = next_line.strip().split("\t")
+
+                pitch_no_offset = int(tokens[1])+1
+                pitch = self.scale.get_interval_midi(pitch_no_offset, self.offset)
+
                 if len(tokens) == 2:
-                    self.notes.append((int(tokens[1])+self.offset, float(tokens[0])+self.offset*10**-6, float(next_tokens[0]) - float(tokens[0]), None))
+                    self.notes.append(
+                        (pitch, # pitch int
+                        float(tokens[0])+self.offset*10**-6, # start time
+                        float(next_tokens[0]) - float(tokens[0]), 
+                        None))
                 elif len(tokens) == 3:
-                    self.notes.append((int(tokens[1])+self.offset, float(tokens[0])+self.offset*10**-6, float(next_tokens[0]) - float(tokens[0]), tokens[2]))
+                    self.notes.append(
+                        (pitch, 
+                        float(tokens[0])+self.offset*10**-6, 
+                        float(next_tokens[0]) - float(tokens[0]), 
+                        tokens[2]))
 
     def get_notes(self):
         return self.note_dict #dict w key = note times, val = (pitch, dur)
@@ -263,6 +276,7 @@ class TracksDisplay(InstructionGroup):
                 if abs(self.nowbar_offset - (note.x - self.clock.get_time()*200)) < 5:
                     if note.track == selected_track:
                         note.highlight()
+
         # # if the harmony is valid, highlight something close in pitch
         # if valid:
         #     note_options = []
@@ -517,15 +531,16 @@ class MainWidget(BaseWidget) :
     def __init__(self):
         super(MainWidget, self).__init__()
         # add tracks
-        self.melody_track = TrackData("melody_data.txt", offset=1)
-        self.harmony_track = TrackData("harmony_data.txt", offset=1)
-        self.third_up = TrackData("melody_data.txt", offset=5)
-        self.third_down = TrackData("melody_data.txt", offset=-3)
-        self.fifth_up = TrackData("melody_data.txt", offset=8)
-        self.fifth_down = TrackData("melody_data.txt", offset=-6)
+        self.melody_track = TrackData("melody_data.txt")
+        self.harmony_track = TrackData("harmony_data.txt")
+        self.third_up = TrackData("melody_data.txt", offset=2)
+        self.third_down = TrackData("melody_data.txt", offset=-5)
+        self.fifth_up = TrackData("melody_data.txt", offset=4)
+        self.fifth_down = TrackData("melody_data.txt", offset=-3)
         trackdata = [
         	self.melody_track, 
-        	self.harmony_track, self.third_up, 
+        	self.harmony_track, 
+            self.third_up, 
         	self.third_down, 
         	self.fifth_up, 
         	self.fifth_down
@@ -594,6 +609,10 @@ class HarmoneyPlayer(InstructionGroup):
         self.selected_track = 0
         self.track_pitch = self.detector.tonic
         self.pointer.set_pitch(self.track_pitch)
+
+        self.melody_playing = True
+        self.harmony_playing = True
+        self.harmony_is_valid = False
 
     def on_touch_down(self, touch):
         switch = self.display.click(touch)
@@ -669,12 +688,13 @@ class HarmoneyPlayer(InstructionGroup):
         if old_pitch != self.track_pitch:
             self.pointer.set_pitch(self.track_pitch)
 
+        cur_pitch_is_valid = self.harmony_is_valid
         pitch = self.audio.smoothed_pitch
+
         if pitch != self.display_pitch:
             self.display_pitch = pitch
             if self.display_pitch != 0:
-                # self.pointer.set_pitch(pitch)
-                # self.pointer.set_pitch(self.track_pitch)
+
                 diff, harmony_is_valid = self.detector.check_harmony(self.melody_pitch, self.display_pitch)
                 # self.pointer.change_pointer_angle(diff)
             else:
@@ -685,7 +705,12 @@ class HarmoneyPlayer(InstructionGroup):
             else:
                 self.ps.start()
                 self.score += 10
-        self.display.game_display.on_update(self.playing_tracks, self.selected_track, self.display_pitch, harmony_is_valid)
+
+        else:
+            harmony_is_valid = cur_pitch_is_valid
+        self.harmony_is_valid = harmony_is_valid
+        self.display.game_display.on_update(self.melody_playing, self.harmony_playing, self.display_pitch, harmony_is_valid)
+
 
     def update_home_display(self):
         xpos, ypos = Window.mouse_pos

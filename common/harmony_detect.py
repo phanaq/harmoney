@@ -69,7 +69,18 @@ class Scale():
 		# associated with roman numeral
 		while numeral > 7:
 			numeral -= 7
+		while numeral < 1:
+			numeral += 7
 		return self.numerals_to_steps[numeral]
+
+	def get_interval_midi(self, pitch, interval):
+		current_numeral = self.get_numeral(pitch)
+		desired_numeral = current_numeral + interval
+		desired_step = self.get_step(desired_numeral)
+		interval_midi = self.tonic + desired_step
+		if interval < 0:
+			interval_midi -= 12
+		return interval_midi
 
 	def _get_dicts(self):
 		numerals_to_steps = {}
