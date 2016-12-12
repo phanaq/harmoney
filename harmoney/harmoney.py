@@ -26,8 +26,8 @@ from kivy.uix.image import Image
 w = Window.width
 h = Window.height
 
-#colors for note blocks: white, pink, red, orange, yellow-green, light blue, light purple
-rainbowRGB = [(1, 1, 1), (1, .4, 1), (1, .4, .4), (1, .6, .2), (.8, 1, .4), (.4, .85, 1), (.8, .6, 1)]
+#colors for note blocks: red, orange, white, pink, yellow-green, light blue, light purple
+rainbowRGB = [(1, .4, .4), (1, .6, .2), (1, 1, 1), (1, .4, 1), (.8, 1, .4), (.4, .85, 1), (.8, .6, 1)]
 
 
 class NoteBlock(InstructionGroup):
@@ -247,9 +247,9 @@ class TracksDisplay(InstructionGroup):
             for (note_time, note_pitch, note_dur, words) in track.get_notes_in_range(self.clock.get_time(), self.clock.get_time() + 4):
                 if note_time not in self.notes_on_screen:
 
-                    if trackIndex == 0:
+                    if trackIndex == 2:
                         notedisp = NoteBlock(note_pitch, note_dur, self.floorY, self.ceilingY, Color(rgb=colorRGB), note_time*200 + self.nowbar_offset, 25, True, False, trackIndex)
-                    elif trackIndex == 1:
+                    elif trackIndex == 3:
                         notedisp = NoteBlock(note_pitch, note_dur, self.floorY, self.ceilingY, Color(rgb=colorRGB), note_time*200 + self.nowbar_offset, 25, False, True, trackIndex)
                     else:
                         notedisp = NoteBlock(note_pitch, note_dur, self.floorY, self.ceilingY, Color(rgb=(.3, .3, .3)), note_time*200 + self.nowbar_offset, 5, False, False, trackIndex)
@@ -541,12 +541,12 @@ class MainWidget(BaseWidget) :
         self.fifth_up = TrackData("melody_data.txt", offset=4)
         self.fifth_down = TrackData("melody_data.txt", offset=-3)
         trackdata = [
-        	self.melody_track, 
-        	self.harmony_track, 
-            self.third_up, 
-        	self.third_down, 
-        	self.fifth_up, 
-        	self.fifth_down
+            self.fifth_up,
+            self.third_up,
+            self.melody_track, 
+            self.harmony_track,
+            self.third_down,
+            self.fifth_down
     	]
 
     	# add lyrics
@@ -650,6 +650,13 @@ class HarmoneyPlayer(InstructionGroup):
             self.audio.melody_track.frame = self.checkpoint_times[self.index][1]
             self.audio.harmony_track.frame = self.checkpoint_times[self.index][1]
 
+        if keycode[1] == 'up':
+            if self.selected_track > 0:
+                self.selected_track -= 1
+
+        if keycode[1] == 'down':
+            if self.selected_track < 5:
+                self.selected_track += 1
 
         button_idx = lookup(keycode[1], '12345', (0,1,2,3,4))
         if button_idx != None:
@@ -657,10 +664,6 @@ class HarmoneyPlayer(InstructionGroup):
             self.clock.set_time(self.checkpoint_times[self.index][0])
             self.audio.melody_track.frame = self.checkpoint_times[self.index][1]
             self.audio.harmony_track.frame = self.checkpoint_times[self.index][1]
-
-        button_idx = lookup(keycode[1], 'qwert', (0,1,2,3,4))
-        if button_idx != None:
-            self.selected_track = button_idx
 
         button_idx = lookup(keycode[1], 'asdfg', (0,1,2,3,4))
         if button_idx != None:
