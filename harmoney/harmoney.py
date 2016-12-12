@@ -691,7 +691,6 @@ class HarmoneyPlayer(InstructionGroup):
         if keycode[1] == 'spacebar':
             self.explode = not self.explode
             if self.explode:
-                print "self.explode"
                 for i in range(6):
                     self.playing_tracks[i] = True
             else:
@@ -729,7 +728,12 @@ class HarmoneyPlayer(InstructionGroup):
         self.audio.on_update()
         self.get_melody_pitch()
         harmony_is_valid = False
-        
+
+        for i in range(4, -1, -1):
+            if self.clock.get_time() > self.checkpoint_times[i][0]:
+                self.index = i
+                break
+
         old_pitch = self.track_pitch
         self.get_track_pitch(self.selected_track)
 
