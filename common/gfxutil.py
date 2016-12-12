@@ -120,7 +120,7 @@ class TrackPointer(InstructionGroup):
         self.color = Color(1,1,1,1)
         self.add(self.color)
         self.xpos = 150 - self.pointer_width
-        self.ypos = np.interp(60, [58,77], [floorY, ceilingY])
+        self.ypos = np.interp(60, [50,86], [floorY, ceilingY])
         self.ps = ps
         self.ps.emitter_x = self.xpos
         self.ps.emitter_y = self.ypos
@@ -146,7 +146,7 @@ class TrackPointer(InstructionGroup):
         # print pitch
         self.time = 0
         old_pos = self.ypos
-        self.ypos = np.interp(pitch, [58,77], [self.floorY, self.ceilingY])
+        self.ypos = np.interp(pitch, [50,86], [self.floorY, self.ceilingY])
         self.ypos_anim = KFAnim((0, old_pos), (.15, self.ypos))
 
     def change_pointer_angle(self, dir):
@@ -187,7 +187,7 @@ class CatPointer(InstructionGroup):
         self.cat_width = 60
         self.cat_height = 45
         self.xpos = nowbar_offset - self.cat_width
-        self.ypos = np.interp(60, [58,77], [floorY, ceilingY])
+        self.ypos = np.interp(60, [50,86], [floorY, ceilingY])
         texture = Image(source='nyancat.png').texture
         self.nyancat = Rectangle(texture=texture, pos=(150-self.cat_width, self.ypos-self.cat_height/2.),size=(self.cat_width,self.cat_height))
         self.add(self.nyancat)
@@ -213,7 +213,7 @@ class CatPointer(InstructionGroup):
         pitch = pitch
         self.time = 0
         old_pos = self.ypos
-        self.ypos = np.interp(pitch, [58,77], [self.floorY, self.ceilingY])
+        self.ypos = np.interp(pitch, [50,86], [self.floorY, self.ceilingY])
         self.ypos_anim = KFAnim((0, old_pos), (.15, self.ypos))
 
     def change_pointer_angle(self, note_diff):
