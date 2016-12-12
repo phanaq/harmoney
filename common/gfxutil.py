@@ -107,6 +107,7 @@ class Pointer(InstructionGroup):
 class TrackPointer(InstructionGroup):
     def __init__(self, nowbar_offset, floorY, ceilingY, ps):
         super(TrackPointer, self).__init__()
+        print "floor and ceiling:", self.floorY, self.ceilingY
         self.floorY = floorY
         self.ceilingY = ceilingY
 
@@ -172,7 +173,6 @@ class CatPointer(InstructionGroup):
 
         self.floorY = floorY
         self.ceilingY = ceilingY
-
         self.add(PushMatrix())
 
         # rotation and animation
@@ -210,7 +210,6 @@ class CatPointer(InstructionGroup):
         self.nyancat.pos = (xpos, ypos)
 
     def set_pitch(self, pitch):
-        pitch = pitch
         self.time = 0
         old_pos = self.ypos
         self.ypos = np.interp(pitch, [50,86], [self.floorY, self.ceilingY])

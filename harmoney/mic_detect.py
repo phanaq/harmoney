@@ -103,6 +103,7 @@ class MainWidget(BaseWidget) :
         # self.canvas.add(self.anim_group)
         # self.pointer = Pointer(self.staff)
         # self.anim_group.add(self.pointer)
+        self.pitches = []
 
         self.testBlock = NoteBlock((100, 150), 100)
         self.testBlock2 = NoteBlock((200, 200), 100)
@@ -131,6 +132,7 @@ class MainWidget(BaseWidget) :
         self.wave_gen.pause()
         self.mixer.add(self.wave_gen)
 
+
     def on_update(self):
         self.audio.on_update()
         # self.anim_group.on_update()
@@ -139,11 +141,14 @@ class MainWidget(BaseWidget) :
             if len(self.input_buffers) > 0:
                 pitch = self.pitch_o(self.input_buffers.pop(0)[:512])[0]
                 self.label.text = 'Detected: '+str(pitch)+'\n'
+                self.pitches.append(pitch)
                 pitch = int(round(pitch))
                 if pitch != self.pitch:
                     self.pitch = pitch
                     # self.pointer.set_pitch(self.pitch)
                 self.label.text += 'Rounded pitch: '+str(pitch) + '\n'
+
+        print self.pitches
 
     def receive_audio(self, frames, num_channels):
         if self.record:
