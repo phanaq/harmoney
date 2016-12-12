@@ -64,6 +64,12 @@ class NoteBlock(InstructionGroup):
         self.color.rgb = (.4, .8, .9)
         self.highlighted = True
 
+    def activate(self):
+        self.color.a = 1
+
+    def deactivate(self):
+        self.color.a = 0.3
+
     def on_update(self):
         pass
 
@@ -279,6 +285,13 @@ class TracksDisplay(InstructionGroup):
                 if abs(self.nowbar_offset - (note.x - self.clock.get_time()*200)) < 5:
                     if note.track == selected_track:
                         note.highlight()
+
+        for note_time in self.notes_on_screen:
+            note = self.notes_on_screen[note_time]
+            if note.track == selected_track:
+                note.activate()
+            else:
+                note.deactivate()
 
         # # if the harmony is valid, highlight something close in pitch
         # if valid:
