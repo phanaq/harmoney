@@ -640,30 +640,7 @@ class HarmoneyPlayer(InstructionGroup):
         self.get_melody_pitch()
         harmony_is_valid = False
 
-  #       # pitch = self.audio.pitch
-  #       pitch = self.audio.smoothed_pitch
-  #       if pitch != 0:
-  #       	pitch += self.octave_offset*12
-
-  #   	if 50 < pitch < 60:
-  #   		pitch += 12
-
-		# if pitch == 29:
-		# 	pitch = 63
-		# if pitch == 27:
-		# 	pitch = 61
-
-		# print "final pitch:", pitch
-
-  #       while pitch < 50:
-  #       	self.octave_offset += 1
-  #       	pitch += 12
-  #   	while pitch > 86:
-  #   		self.octave_offset -= 1
-  #   		pitch -= 12
-		# self.octave_offsets.append(self.octave_offset)
-		# counter = Counter(self.octave_offsets)
-
+        pitch = self.audio.smoothed_pitch
         if pitch != self.display_pitch:
             self.display_pitch = pitch
             if self.display_pitch != 0:
