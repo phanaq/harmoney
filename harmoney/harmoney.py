@@ -10,6 +10,7 @@ from common.mixer import *
 from common.wavegen import *
 from common.wavesrc import *
 from common.clock import *
+from common.note import *
 from common.kivyparticle import ParticleSystem
 
 from aubio import source, pitch
@@ -28,7 +29,7 @@ h = Window.height
 
 #colors for note blocks: red, orange, white, pink, yellow-green, light blue, light purple
 rainbowRGB = [(1, .4, .4), (1, .6, .2), (1, 1, 1), (1, .4, 1), (.8, 1, .4), (.4, .85, 1), (.8, .6, 1)]
-
+cpRainbow = [(1, .4, .4), (1, .6, .2), (.8, 1, .4), (.4, .85, 1), (.8, .6, 1)]
 
 class NoteBlock(InstructionGroup):
     def __init__(self, pitch, duration, floorY, ceilingY, color, xpos, height, mel, harm, track):
@@ -192,11 +193,11 @@ class CheckpointDisplay(InstructionGroup):
         self.cur_rel_pos = 0 #fraction of song played
         self.total_song_length = 186.0
         self.checkpoint_times = checkpoints
-        self.colorIndex = 2
+        self.colorIndex = 0
         self.add(Color(0, 0, 1))
         for (time, frame) in self.checkpoint_times:
             cp = CEllipse(cpos = (time/self.total_song_length * self.length + self.start_x, self.y), size=(10, 10))
-            color = Color(rgb=rainbowRGB[self.colorIndex])
+            color = Color(rgb=cpRainbow[self.colorIndex])
             self.add(color)
             self.add(cp)
             self.colorIndex += 1
@@ -269,7 +270,7 @@ class TracksDisplay(InstructionGroup):
         for note_time in self.notes_on_screen:
             note = self.notes_on_screen[note_time]
             if playing_tracks[note.track]:
-                print note.track
+                # print note.track
                 note.fade_in()
             else:
                 note.fade_out()
@@ -548,7 +549,7 @@ class MainWidget(BaseWidget) :
         self.third_down = TrackData("melody_data.txt", offset=-5)
         self.fifth_up = TrackData("melody_data.txt", offset=4)
         self.fifth_down = TrackData("melody_data.txt", offset=-3)
-        trackdata = [
+        self.trackdata = [
             self.fifth_up,
             self.third_up,
             self.melody_track, 
@@ -569,12 +570,12 @@ class MainWidget(BaseWidget) :
         self.add_widget(self.ps)
 
         # score
-        self.score_label = topright_label()
-        self.add_widget(self.score_label)
+        # self.score_label = topright_label()
+        # self.add_widget(self.score_label)
 
         # display
         self.anim_group = AnimGroup()
-        self.display = Display(trackdata, self.ps, self.lyrics)
+        self.display = Display(self.trackdata, self.ps, self.lyrics)
         self.anim_group.add(self.display)
         self.canvas.add(self.anim_group)
 
@@ -593,7 +594,13 @@ class MainWidget(BaseWidget) :
     def on_update(self):
         self.anim_group.on_update()
         self.player.on_update()
-        self.score_label.text = "Score: " + str(self.player.score)
+        now_time = self.display.game_display.clock.get_time()
+        for i in range(len(self.player.playing_tracks)):
+            if self.player.playing_tracks[i] and i != 2 and i != 3:
+                for note in self.trackdata[i].get_notes_in_range(now_time, now_time + 2):
+                    if abs(now_time - note[0]) < .025:
+                        new_note = NoteGenerator(note[1], 0.5, note[2])
+                        self.audio.mixer.add(new_note)
 
 class HarmoneyPlayer(InstructionGroup):
     def __init__(self, ps, display, audio):
