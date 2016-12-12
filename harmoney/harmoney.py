@@ -252,7 +252,7 @@ class TracksDisplay(InstructionGroup):
                     elif trackIndex == 3:
                         notedisp = NoteBlock(note_pitch, note_dur, self.floorY, self.ceilingY, Color(rgb=colorRGB), note_time*200 + self.nowbar_offset, 25, False, True, trackIndex)
                     else:
-                        notedisp = NoteBlock(note_pitch, note_dur, self.floorY, self.ceilingY, Color(rgb=(.3, .3, .3)), note_time*200 + self.nowbar_offset, 5, False, False, trackIndex)
+                        notedisp = NoteBlock(note_pitch, note_dur, self.floorY, self.ceilingY, Color(rgb=(.5, .9, .3)), note_time*200 + self.nowbar_offset, 5, False, False, trackIndex)
 
                     if words:
                         self.lyrics.text = words
@@ -262,16 +262,11 @@ class TracksDisplay(InstructionGroup):
         # fade out notes when mel or harm is false (not playing)
         for note_time in self.notes_on_screen:
             note = self.notes_on_screen[note_time]
-            if note.mel:
-                if playing_tracks[0]:
-                    note.fade_in()
-                else:
-                    note.fade_out()
-            elif note.harm:
-                if playing_tracks[1]:
-                    note.fade_in()
-                else:
-                    note.fade_out()
+            if playing_tracks[note.track]:
+                print note.track
+                note.fade_in()
+            else:
+                note.fade_out()
 
         if pitch != 0:
             for note_time in self.notes_on_screen:
@@ -607,7 +602,7 @@ class HarmoneyPlayer(InstructionGroup):
         self.clock = self.display.which_display.clock
         self.pointer = self.display.game_display.td.pd.pointer
 
-        self.playing_tracks = [True, True, False, False, False, False]
+        self.playing_tracks = [False, False, True, True, False, False]
 
         self.selected_track = 0
         self.track_pitch = self.detector.tonic
@@ -625,14 +620,6 @@ class HarmoneyPlayer(InstructionGroup):
         	self.audio.toggle()
         	clock = self.display.which_display.clock
         	clock.toggle()
-
-        if keycode[1] == 'm':
-        	self.audio.toggle_melody()
-        	self.playing_tracks[0] = not self.playing_tracks[0]
-
-        if keycode[1] == 'h':
-            self.audio.toggle_harmony()
-            self.playing_tracks[1] = not self.playing_tracks[1] 
 
         if keycode[1] == 'left':
             if self.index > 0:
@@ -665,7 +652,7 @@ class HarmoneyPlayer(InstructionGroup):
             self.audio.melody_track.frame = self.checkpoint_times[self.index][1]
             self.audio.harmony_track.frame = self.checkpoint_times[self.index][1]
 
-        button_idx = lookup(keycode[1], 'asdfg', (0,1,2,3,4))
+        button_idx = lookup(keycode[1], 'asdfgh', (0,1,2,3,4,5))
         if button_idx != None:
             self.playing_tracks[button_idx] = not self.playing_tracks[button_idx]
 
