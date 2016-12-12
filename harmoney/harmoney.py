@@ -694,6 +694,12 @@ class HarmoneyPlayer(InstructionGroup):
         cur_pitch_is_valid = self.harmony_is_valid
         pitch = self.audio.smoothed_pitch
 
+        if pitch != 0: 
+            self.ps.start()
+            self.score += 10
+        else:
+            self.ps.stop()
+
         if pitch != self.display_pitch:
             self.display_pitch = pitch
             if self.display_pitch != 0:
@@ -703,11 +709,11 @@ class HarmoneyPlayer(InstructionGroup):
             else:
                 harmony_is_valid = False
                 # self.pointer.change_pointer_angle(0)
-            if not harmony_is_valid:
-                self.ps.stop()
-            else:
-                self.ps.start()
-                self.score += 10
+            # if not harmony_is_valid:
+            #     self.ps.stop()
+            # else:
+            #     self.ps.start()
+                # self.score += 10
 
         else:
             harmony_is_valid = cur_pitch_is_valid
