@@ -75,11 +75,15 @@ class Scale():
 
 	def get_interval_midi(self, pitch, interval):
 		current_numeral = self.get_numeral(pitch)
+		current_step = self.get_step(current_numeral)
 		desired_numeral = current_numeral + interval
 		desired_step = self.get_step(desired_numeral)
-		interval_midi = self.tonic + desired_step
-		if interval < 0:
-			interval_midi -= 12
+		step_diff = desired_step - current_step
+		if interval > 0 and step_diff < 0:
+			step_diff += 12
+		if interval < 0 and step_diff > 0:
+			step_diff -= 12
+		interval_midi = pitch + step_diff
 		return interval_midi
 
 	def _get_dicts(self):

@@ -127,7 +127,10 @@ class TrackData(object):
                 next_tokens = next_line.strip().split("\t")
 
                 pitch_no_offset = int(tokens[1])+1
-                pitch = self.scale.get_interval_midi(pitch_no_offset, self.offset)
+                if self.offset == 0:
+                    pitch = pitch_no_offset
+                else:
+                    pitch = self.scale.get_interval_midi(pitch_no_offset, self.offset)
 
                 if len(tokens) == 2:
                     self.notes.append(
