@@ -668,9 +668,9 @@ class HarmoneyPlayer(InstructionGroup):
         if keycode[1] == 'right':
             if self.index < 4:
                 self.index += 1
-            self.clock.set_time(self.checkpoint_times[self.index][0])
-            self.audio.melody_track.frame = self.checkpoint_times[self.index][1]
-            self.audio.harmony_track.frame = self.checkpoint_times[self.index][1]
+                self.clock.set_time(self.checkpoint_times[self.index][0])
+                self.audio.melody_track.frame = self.checkpoint_times[self.index][1]
+                self.audio.harmony_track.frame = self.checkpoint_times[self.index][1]
 
         if keycode[1] == 'up':
             if self.selected_track > 0:
