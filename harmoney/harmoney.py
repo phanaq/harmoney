@@ -709,7 +709,7 @@ class HarmoneyPlayer(InstructionGroup):
         else:
             harmony_is_valid = cur_pitch_is_valid
         self.harmony_is_valid = harmony_is_valid
-        self.display.game_display.on_update(self.melody_playing, self.harmony_playing, self.display_pitch, harmony_is_valid)
+        self.display.game_display.on_update(self.playing_tracks, self.selected_track, self.display_pitch, harmony_is_valid)
 
 
     def update_home_display(self):
